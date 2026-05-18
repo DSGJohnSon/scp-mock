@@ -17,11 +17,26 @@
     "turbo": "^2.5.4"
   },
   "pnpm": {
-  "overrides": {
-    "@types/react": "19.2.14",
-    "@types/react-dom": "19.2.3"
-  }
-},
+    "overrides": {
+      "@types/react": "19.2.14",
+      "@types/react-dom": "19.2.3"
+    },
+    "allowedDeprecatedVersions": {
+      "@react-email/components": "*",
+      "eslint": "8"
+    },
+    "peerDependencyRules": {
+      "allowedVersions": {
+        "react": "^19",
+        "react-dom": "^19",
+        "better-call>zod": "3",
+        "@typescript-eslint/parser>eslint": "9",
+        "@typescript-eslint/eslint-plugin>eslint": "9",
+        "@typescript-eslint/type-utils>eslint": "9",
+        "@typescript-eslint/utils>eslint": "9"
+      }
+    }
+  },
   "simple-git-hooks": {},
   "packageManager": "pnpm@9.15.4",
   "workspaces": [
