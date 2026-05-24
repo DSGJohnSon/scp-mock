@@ -2,7 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { client } from "@/lib/rpc";
 import { toast } from "sonner";
 
-interface RecordManualPaymentRequest {
+interface RecordManualPaymentParams {
   orderItemId: string;
   amount: number;
   paymentMethod: "CARD" | "BANK_TRANSFER" | "CASH" | "CHECK";
@@ -12,31 +12,21 @@ interface RecordManualPaymentRequest {
 export const useRecordManualPayment = () => {
   const queryClient = useQueryClient();
 
-  const mutation = useMutation({
-    mutationFn: async (data: RecordManualPaymentRequest) => {
-      const response = await client.api.reservations["manual-payment"].$post({
-        json: data,
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || "Failed to record manual payment");
+  return useMutation<unknown, Error, RecordManualPaymentParams>({
+    mutationFn: async (json) => {
+      const res = await client.api.reservations["manual-payment"]["$post"]({ json });
+      return res.json();
+    },
+    onSuccess: (response: unknown) => {
+      const r = response as { success: boolean; message: string };
+      if (r.success) {
+        toast.success(r.message);
+        queryClient.invalidateQueries({ queryKey: ["reservations"] });
+        queryClient.invalidateQueries({ queryKey: ["reservation-details"] });
+      } else {
+        toast.error(r.message);
       }
-
-      return await response.json();
     },
-    onSuccess: (data, variables) => {
-      toast.success("Paiement enregistré avec succès");
-      
-      // Invalidate relevant queries
-      queryClient.invalidateQueries({ queryKey: ["reservation-details"] });
-      queryClient.invalidateQueries({ queryKey: ["reservations"] });
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-    },
-    onError: (error: Error) => {
-      toast.error(error.message || "Erreur lors de l'enregistrement du paiement");
-    },
+    onError: (error) => toast.error(error.message),
   });
-
-  return mutation;
 };

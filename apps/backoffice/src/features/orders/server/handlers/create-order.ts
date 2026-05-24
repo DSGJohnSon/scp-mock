@@ -7,7 +7,7 @@ import { generateOrderNumber, createPaymentIntent } from "@/lib/stripe";
 import {
   finalizeOrder,
   allocatePaymentToOrderItems,
-} from "@/lib/order-processing";
+} from "@/features/orders/server/helpers/order-processing";
 import type { ParticipantData } from "@/lib/participant-data";
 
 export async function handleCreateOrder(c: Context<AppEnv>) {

@@ -69,6 +69,7 @@ const app = new Hono()
 
       return c.json({
         success: true,
+        message: "Paiements récupérés",
         data: payments,
       });
     } catch (error) {

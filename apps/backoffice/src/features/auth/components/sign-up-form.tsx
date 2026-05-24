@@ -26,7 +26,6 @@ import { useRegister } from "@/features/auth/api/use-register";
 import { Separator } from "@/components/ui/separator";
 import Link from "next/link";
 import { LoaderIcon } from "@/lib/icons";
-import PasswordSecurityTest from "./password-security-test";
 
 export function SignUpForm({
   className,
@@ -117,7 +116,6 @@ export function SignUpForm({
                         <div className="flex justify-between items-center w-full mb-2">
                           <FormMessage />
                         </div>
-                        <PasswordSecurityTest password={field.value} />
                       </div>
                     </FormItem>
                   )}

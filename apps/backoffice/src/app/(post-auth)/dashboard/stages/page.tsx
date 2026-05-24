@@ -1,156 +1,55 @@
 "use client";
 
-import { CalendarScheduleStages } from "@/features/stages/components/calendar-schedule-stages";
-import { StageDetailsSheet } from "@/features/stages/components/stage-details-sheet";
-import { AddStageDialog } from "./add-stage-dialog";
-import { useState, useEffect } from "react";
-import { Stage, User, StageBooking, StageType } from "@prisma/client";
-import { useGetAllStages } from "@/features/stages/api/use-get-stage";
-import { useCreateStage } from "@/features/stages/api/use-create-stage";
+import { useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
+
+// Auth User
 import { useCurrent } from "@/features/auth/api/use-current";
 
-// Type for the API response from the server
-interface StageApiResponse extends Stage {
-  moniteurs: Array<{
-    moniteur: User;
-  }>;
-  bookings: StageBooking[];
-}
+// Types
+import { StageItem, StageType } from "./_types";
 
-interface StageWithDetails {
-  id: string;
-  startDate: Date;
-  duration: number;
-  places: number;
-  price: number;
-  acomptePrice: number;
-  promotionOriginalPrice: number | null;
-  promotionEndDate: Date | null;
-  promotionReason: string | null;
-  type: StageType;
-  createdAt: Date;
-  updatedAt: Date;
-  moniteurs: Array<{
-    moniteur: User;
-  }>;
-  bookings: any[];
-  placesRestantes?: number;
-}
+// Custom Hooks
+import { useStagesData } from "./_hooks/use-stages-data";
+import { useStageModal } from "./_hooks/use-stage-modal";
+// Hooks API
+import { useCreateStage } from "@/features/stages/api/use-create-stage";
+
+// Components
+import { Button } from "@/components/ui/button";
+import { ResponsiveModal } from "@/components/shared/responsive-modal";
+
+import { StageDetailsSheet } from "./_components/(details-stage)/stage-details-modal";
+import { Calendar } from "./_components/(calendar)/calendar";
+import { StageAddForm } from "./_components/(forms)/stage-add-form";
+
+//---------------------------------------------------------------------------------------
 
 export default function Page() {
-  const [showDetailsSheet, setShowDetailsSheet] = useState(false);
-  const [showAddForm, setShowAddForm] = useState(false);
-  const [selectedStage, setSelectedStage] = useState<StageWithDetails | null>(
-    null,
-  );
-  const [selectedDate, setSelectedDate] = useState<Date | null>(null);
-  const [mounted, setMounted] = useState(false);
-
-  // Fetch current user for role
+  const { stages, isLoading, isError, refetch } = useStagesData();
   const { data: user } = useCurrent();
-
-  // Fetch stages from API
-  const { data: stagesData, isLoading } = useGetAllStages();
+  const modal = useStageModal();
   const createStage = useCreateStage();
 
+  // Deep-link support: /dashboard/stages?stageId=xxx opens the detail modal directly
+  const searchParams = useSearchParams();
+  const stageIdFromUrl = searchParams.get("stageId");
+  const hasAutoOpened = useRef(false);
+
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  // Prevent hydration mismatch
-  if (!mounted) {
-    return (
-      <main className="flex flex-1 flex-col gap-4 p-4">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg text-muted-foreground">Chargement...</div>
-        </div>
-      </main>
-    );
-  }
-
-  // Transform API data to match the expected Stage type with additional info
-  const stages =
-    stagesData?.map((stage: any) => ({
-      id: stage.id,
-      startDate: new Date(stage.startDate),
-      duration: stage.duration,
-      places: stage.places,
-      price: stage.price,
-      acomptePrice: stage.acomptePrice,
-      promotionOriginalPrice: stage.promotionOriginalPrice,
-      promotionReason: stage.promotionReason ?? null,
-      type: stage.type,
-      // createdAt/updatedAt not returned by optimized API
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      moniteurs: stage.moniteurs.map((m: any) => ({
-        moniteur: {
-          id: m.moniteur.id,
-          name: m.moniteur.name,
-          avatarUrl: m.moniteur.avatarUrl,
-          role: m.moniteur.role,
-          // Minimal fields for list view
-          email: "",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      })),
-      bookings: [], // Bookings are not returned by getAll anymore
-      confirmedBookings: stage.confirmedBookings, // New field from API
-      bookingsCount: stage.confirmedBookings, // Hack for frontend compatibility if needed, or use specific field
-      placesRestantes: stage.availablePlaces, // New field from API
-    })) || [];
-
-  // Keep the full data with moniteurs for details sheet
-  // Note: bookings will be empty here, need to fetch details on click
-  const stagesWithDetails: StageWithDetails[] =
-    stagesData?.map((stage: any) => ({
-      id: stage.id,
-      startDate: new Date(stage.startDate),
-      duration: stage.duration,
-      places: stage.places,
-      price: stage.price,
-      acomptePrice: stage.acomptePrice,
-      promotionOriginalPrice: stage.promotionOriginalPrice,
-      promotionReason: stage.promotionReason ?? null,
-      type: stage.type,
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      moniteurs: stage.moniteurs.map((m: any) => ({
-        moniteur: {
-          id: m.moniteur.id,
-          name: m.moniteur.name,
-          avatarUrl: m.moniteur.avatarUrl,
-          role: m.moniteur.role,
-          email: "",
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        },
-      })),
-      bookings: [],
-      placesRestantes: stage.availablePlaces,
-    })) || [];
-
-  const handleStageClick = (stage: StageWithDetails) => {
-    // Find the full stage data with moniteur info
-    const fullStage = stagesWithDetails.find((s) => s.id === stage.id);
-    if (fullStage) {
-      setSelectedStage(fullStage);
-      setShowDetailsSheet(true);
+    if (hasAutoOpened.current || !stageIdFromUrl || stages.length === 0) return;
+    const target = stages.find((s) => s.id === stageIdFromUrl);
+    if (target) {
+      hasAutoOpened.current = true;
+      modal.openDetail(target);
     }
-  };
+  }, [stages, stageIdFromUrl, modal]);
 
-  const handleDayClick = (date: Date) => {
-    setSelectedDate(date);
-    setShowAddForm(true);
-  };
+  const handleStageClick = (stage: StageItem) => modal.openDetail(stage);
+  const handleDayClick = (date: Date) => modal.openCreate(date);
+  const handleAddStage = () => modal.openCreate();
 
-  const handleAddStage = () => {
-    setSelectedDate(null);
-    setShowAddForm(true);
-  };
-
-  const handleCreateStage = (newStage: {
+  const handleCreateSubmit = (formData: {
     startDate: Date;
     duration: number;
     places: number;
@@ -160,32 +59,27 @@ export default function Page() {
     type: StageType;
   }) => {
     createStage.mutate(
-      {
-        startDate: newStage.startDate.toISOString(),
-        duration: newStage.duration,
-        places: newStage.places,
-        moniteurIds: newStage.moniteurIds,
-        price: newStage.price,
-        acomptePrice: newStage.acomptePrice,
-        type: newStage.type,
-      },
-      {
-        onSuccess: () => {
-          setShowAddForm(false);
-          setSelectedDate(null);
-        },
-      },
+      { ...formData, startDate: formData.startDate.toISOString() },
+      { onSuccess: () => modal.close() }
     );
   };
 
-  // Show loading state while fetching data
   if (isLoading) {
     return (
-      <main className="flex flex-1 flex-col gap-4 p-4">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-lg text-muted-foreground">
-            Chargement des stages...
-          </div>
+      <main className="flex flex-1 flex-col p-4">
+        <div className="flex items-center justify-center h-64 text-muted-foreground">
+          Chargement des stages...
+        </div>
+      </main>
+    );
+  }
+
+  if (isError) {
+    return (
+      <main className="flex flex-1 flex-col p-4">
+        <div className="flex flex-col items-center justify-center h-64 gap-4">
+          <p className="text-muted-foreground">Impossible de charger les stages.</p>
+          <Button variant="outline" onClick={() => refetch()}>Réessayer</Button>
         </div>
       </main>
     );
@@ -194,7 +88,7 @@ export default function Page() {
   return (
     <main className="flex flex-1 flex-col gap-4 p-4">
       <div className="h-[calc(100vh-120px)]">
-        <CalendarScheduleStages
+        <Calendar
           stages={stages}
           onStageClick={handleStageClick}
           onDayClick={handleDayClick}
@@ -203,22 +97,27 @@ export default function Page() {
         />
       </div>
 
-      <AddStageDialog
-        open={showAddForm}
-        onOpenChange={setShowAddForm}
-        selectedDate={selectedDate}
-        onCreateStage={handleCreateStage}
-        isSubmitting={createStage.isPending}
-      />
+      <ResponsiveModal
+        open={modal.isOpen && modal.mode === "create"}
+        onOpenChange={(open) => !open && modal.close()}
+        title="Nouveau stage"
+      >
+        <div className="p-6">
+          <StageAddForm
+            selectedDate={modal.selectedDate}
+            onSubmit={handleCreateSubmit}
+            onCancel={modal.close}
+            isSubmitting={createStage.isPending}
+          />
+        </div>
+      </ResponsiveModal>
 
       <StageDetailsSheet
-        open={showDetailsSheet}
-        onOpenChange={setShowDetailsSheet}
-        stage={selectedStage}
+        open={modal.isOpen && modal.mode === "detail"}
+        onOpenChange={(open) => !open && modal.close()}
+        stage={modal.selectedStage}
         role={user?.role ?? undefined}
       />
     </main>
   );
 }
-
-export const fetchCache = "force-no-store";

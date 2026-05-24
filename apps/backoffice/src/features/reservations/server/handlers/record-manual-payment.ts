@@ -4,11 +4,12 @@ import type { AppEnv } from "@/lib/middlewares/types";
 
 export async function handleRecordManualPayment(c: Context<AppEnv>) {
   try {
-    // zValidator in route.ts guarantees shape
     const { orderItemId, amount, paymentMethod, note } =
       c.req.valid("json" as never) as {
-        orderItemId: string; amount: number;
-        paymentMethod: "CARD" | "BANK_TRANSFER" | "CASH" | "CHECK"; note?: string;
+        orderItemId: string;
+        amount: number;
+        paymentMethod: "CARD" | "BANK_TRANSFER" | "CASH" | "CHECK";
+        note?: string;
       };
 
     const orderItem = await prisma.orderItem.findUnique({
@@ -78,18 +79,13 @@ export async function handleRecordManualPayment(c: Context<AppEnv>) {
       where: { orderId: order.id },
     });
 
-    const allItemsFullyPaid = allOrderItems.every((item) => {
-      if (item.type === "STAGE")
-        return item.id === orderItemId ? isFullyPaid : item.isFullyPaid;
-      return false;
-    });
+    const allItemsFullyPaid = allOrderItems.every((item) =>
+      item.id === orderItemId ? isFullyPaid : item.isFullyPaid,
+    );
 
     const hasAnyPartialPayment = allOrderItems.some((item) => {
-      if (item.type === "STAGE") {
-        const itemIsFullyPaid = item.id === orderItemId ? isFullyPaid : item.isFullyPaid;
-        return !itemIsFullyPaid && (item.depositAmount || 0) > 0;
-      }
-      return false;
+      const itemFullyPaid = item.id === orderItemId ? isFullyPaid : item.isFullyPaid;
+      return !itemFullyPaid && (item.depositAmount || 0) > 0;
     });
 
     let newOrderStatus = order.status;
@@ -111,11 +107,18 @@ export async function handleRecordManualPayment(c: Context<AppEnv>) {
       message: "Paiement enregistré avec succès",
       data: {
         payment,
-        orderItem: { depositAmount: newDepositAmount, remainingAmount: newRemainingAmount, isFullyPaid },
+        orderItem: {
+          depositAmount: newDepositAmount,
+          remainingAmount: newRemainingAmount,
+          isFullyPaid,
+        },
       },
     });
   } catch (error) {
     console.error("Erreur enregistrement paiement manuel:", error);
-    return c.json({ success: false, message: "Erreur lors de l'enregistrement du paiement" }, 500);
+    return c.json(
+      { success: false, message: "Erreur lors de l'enregistrement du paiement" },
+      500,
+    );
   }
 }

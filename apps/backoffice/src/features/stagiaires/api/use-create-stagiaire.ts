@@ -1,5 +1,4 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { createStagiaire } from "../actions";
 
@@ -14,7 +13,6 @@ type RequestType = {
 };
 
 export const useCreateStagiaire = () => {
-  const router = useRouter();
   const queryClient = useQueryClient();
 
   const mutation = useMutation<any, Error, RequestType>({
@@ -25,7 +23,6 @@ export const useCreateStagiaire = () => {
       if (response.success) {
         toast.success(response.message);
         queryClient.invalidateQueries({ queryKey: ["stagiaires"] });
-        router.refresh();
       } else {
         toast.error(response.message);
       }

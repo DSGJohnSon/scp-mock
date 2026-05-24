@@ -12,7 +12,21 @@ export const useGetOrders = () => {
       }
 
       const { data } = await response.json();
-      return data;
+      if (!data) return [];
+      return (data as any[]).map((order) => ({
+        ...order,
+        createdAt: new Date(order.createdAt),
+        payments: (order.payments ?? []).map((p: any) => ({
+          ...p,
+          createdAt: new Date(p.createdAt),
+        })),
+        orderItems: (order.orderItems ?? []).map((item: any) => ({
+          ...item,
+          stage: item.stage
+            ? { ...item.stage, startDate: new Date(item.stage.startDate) }
+            : null,
+        })),
+      }));
     },
   });
 

@@ -6,7 +6,7 @@ import { stripe } from "@/lib/stripe";
 import {
   finalizeOrder,
   allocatePaymentToOrderItems,
-} from "@/lib/order-processing";
+} from "@/features/orders/server/helpers/order-processing";
 
 export async function POST(req: Request) {
   const body = await req.text();

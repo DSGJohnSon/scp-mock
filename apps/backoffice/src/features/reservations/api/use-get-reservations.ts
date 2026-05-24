@@ -1,44 +1,35 @@
 import { useQuery } from "@tanstack/react-query";
 import { client } from "@/lib/rpc";
 
-interface GetReservationsParams {
+export interface GetReservationsParams {
   page?: number;
   limit?: number;
   search?: string;
-  type?: "ALL" | "STAGE" | "BAPTEME";
-  status?: string;
+  bookingStatus?: "ALL" | "CONFIRMED" | "CANCELLED";
   startDate?: string;
   endDate?: string;
-  category?: string;
 }
 
 export const useGetReservations = (params: GetReservationsParams = {}) => {
-  const query = useQuery({
+  return useQuery({
     queryKey: ["reservations", params],
     queryFn: async () => {
-      const searchParams = new URLSearchParams();
-      
-      if (params.page) searchParams.append("page", params.page.toString());
-      if (params.limit) searchParams.append("limit", params.limit.toString());
-      if (params.search) searchParams.append("search", params.search);
-      if (params.type) searchParams.append("type", params.type);
-      if (params.status) searchParams.append("status", params.status);
-      if (params.startDate) searchParams.append("startDate", params.startDate);
-      if (params.endDate) searchParams.append("endDate", params.endDate);
-      if (params.category) searchParams.append("category", params.category);
+      const searchParams: Record<string, string> = {};
 
-      const response = await client.api.reservations.$get({
-        query: Object.fromEntries(searchParams),
-      });
+      if (params.page) searchParams.page = params.page.toString();
+      if (params.limit) searchParams.limit = params.limit.toString();
+      if (params.search) searchParams.search = params.search;
+      if (params.bookingStatus) searchParams.bookingStatus = params.bookingStatus;
+      if (params.startDate) searchParams.startDate = params.startDate;
+      if (params.endDate) searchParams.endDate = params.endDate;
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch reservations");
-      }
+      const res = await client.api.reservations.$get({ query: searchParams });
+      if (!res.ok) throw new Error("Échec de la récupération des réservations");
 
-      const data = await response.json();
-      return data;
+      const json = await res.json();
+      if (!json.success) throw new Error((json as { message?: string }).message ?? "Erreur");
+
+      return (json as { success: true; data: unknown }).data;
     },
   });
-
-  return query;
 };

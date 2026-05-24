@@ -56,25 +56,18 @@ export const useGetAllClients = ({
 // Get client by ID
 /*------------------*/
 
-export const useGetClientById = (id: string) => {
-  const query = useQuery({
+export const useGetClientById = (id: string, enabled = true) => {
+  return useQuery({
     queryKey: ["client", id],
     queryFn: async () => {
       const res = await client.api.clients[":id"].$get({
         param: { id },
       });
-      if (!res.ok) {
-        return null;
-      }
-
+      if (!res.ok) return null;
       const { success, message, data } = await res.json();
-      if (!success) {
-        toast.error(message);
-        return null;
-      }
+      if (!success) { toast.error(message); return null; }
       return data;
     },
+    enabled: !!id && enabled,
   });
-
-  return query;
 };

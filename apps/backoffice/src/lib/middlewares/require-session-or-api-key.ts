@@ -1,6 +1,6 @@
 import "server-only";
 import { createMiddleware } from "hono/factory";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 
 /**
  * Hybrid middleware: accepts either a valid API key (x-api-key) OR a valid session.

@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { Manrope } from "next/font/google";
 import "./globals.css";
-import { QueryProvider } from "@/components/query-provider";
-import { ThemeProvider } from "@/components/theme-provider";
+import { QueryProvider } from "@/components/providers/query-provider";
+import { ThemeProvider } from "@/components/providers/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 
 const manrope = Manrope({
@@ -44,7 +44,7 @@ export default function RootLayout({
       <body className={`${manrope.className} antialiased`}>
         <ThemeProvider
           attribute="class"
-          enableSystem={true}
+          enableSystem={false}
           defaultTheme="light">
           <QueryProvider>
             {children}

@@ -1,5 +1,4 @@
 import * as React from "react";
-import { CheckIcon, ChevronDown, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,6 +18,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 
 import { Dispatch, SetStateAction } from "react";
+import { ChevronDownIcon, TickIcon, XIcon } from "@/lib/icons";
 
 export type SetState<T> = Dispatch<SetStateAction<T>>;
 
@@ -126,7 +126,7 @@ export const SearchableSelect: React.FC<{
                         isSelected ? "text-primary" : "invisible"
                       )}
                     >
-                      <CheckIcon className="w-4 h-4" />
+                      <TickIcon className="w-4 h-4" />
                     </div>
                     {option.icon && (
                       <option.icon className="w-4 h-4 mr-2 text-muted-foreground" />
@@ -247,7 +247,7 @@ export const SearchableSelectTrigger = React.forwardRef<
             <div className="flex items-center justify-between">
               {selectedValue && clearable && (
                 <>
-                  <X
+                  <XIcon
                     className={cn(
                       "mx-1 h-4 cursor-pointer text-muted-foreground"
                     )}
@@ -262,7 +262,7 @@ export const SearchableSelectTrigger = React.forwardRef<
                   />
                 </>
               )}
-              <ChevronDown className="h-4 mx-1 cursor-pointer text-muted-foreground" />
+              <ChevronDownIcon className="h-4 mx-1 cursor-pointer text-muted-foreground" />
             </div>
           </div>
         ) : (
@@ -270,7 +270,7 @@ export const SearchableSelectTrigger = React.forwardRef<
             <span className="mx-3 text-sm text-muted-foreground">
               {placeholder}
             </span>
-            <ChevronDown className="h-4 mx-1 cursor-pointer text-muted-foreground" />
+            <ChevronDownIcon className="h-4 mx-1 cursor-pointer text-muted-foreground" />
           </div>
         )}
       </Button>

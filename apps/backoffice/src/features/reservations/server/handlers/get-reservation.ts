@@ -5,7 +5,7 @@ export async function handleGetReservation(c: Context) {
   try {
     const id = c.req.param("id");
 
-    const stageBooking = await prisma.stageBooking.findUnique({
+    const booking = await prisma.stageBooking.findUnique({
       where: { id },
       include: {
         stagiaire: true,
@@ -13,15 +13,7 @@ export async function handleGetReservation(c: Context) {
           include: {
             moniteurs: { include: { moniteur: true } },
             bookings: {
-              where: {
-                orderItem: {
-                  is: {
-                    order: {
-                      status: { in: ["PAID", "PARTIALLY_PAID", "FULLY_PAID", "CONFIRMED"] },
-                    },
-                  },
-                },
-              },
+              where: { status: "CONFIRMED" },
             },
           },
         },
@@ -31,10 +23,6 @@ export async function handleGetReservation(c: Context) {
               include: {
                 client: true,
                 promoCode: true,
-                payments: {
-                  include: { recordedByUser: true },
-                  orderBy: { createdAt: "asc" },
-                },
               },
             },
             paymentAllocations: {
@@ -46,30 +34,36 @@ export async function handleGetReservation(c: Context) {
       },
     });
 
-    if (stageBooking) {
-      const totalPlaces = stageBooking.stage.places;
-      const confirmedBookings = stageBooking.stage.bookings.length;
-      const remainingPlaces = totalPlaces - confirmedBookings;
-
-      return c.json({
-        success: true,
-        data: {
-          type: "STAGE",
-          booking: stageBooking,
-          availablePlaces: {
-            total: totalPlaces,
-            confirmed: confirmedBookings,
-            remaining: remainingPlaces,
-          },
-        },
-      });
+    if (!booking) {
+      return c.json(
+        { success: false, message: "Réservation non trouvée", data: null },
+        404,
+      );
     }
 
-    return c.json({ success: false, message: "Réservation non trouvée", data: null }, 404);
+    const confirmedBookingsCount = booking.stage.bookings.length;
+    const availablePlaces = {
+      total: booking.stage.places,
+      confirmed: confirmedBookingsCount,
+      remaining: booking.stage.places - confirmedBookingsCount,
+    };
+
+    return c.json({
+      success: true,
+      data: {
+        type: "STAGE" as const,
+        booking,
+        availablePlaces,
+      },
+    });
   } catch (error) {
-    console.error("Erreur récupération détails réservation:", error);
+    console.error("Erreur récupération réservation:", error);
     return c.json(
-      { success: false, message: "Erreur lors de la récupération des détails de la réservation", data: null },
+      {
+        success: false,
+        message: "Erreur lors de la récupération de la réservation",
+        data: null,
+      },
       500,
     );
   }

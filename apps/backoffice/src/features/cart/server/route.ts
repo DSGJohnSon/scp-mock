@@ -4,7 +4,7 @@ import { requireApiKey, requireCartSession } from "@/lib/middlewares";
 import prisma from "@/lib/prisma";
 import { z } from "zod";
 import type { ParticipantData } from "@/lib/participant-data";
-import { AvailabilityService } from "@/lib/availability";
+import { AvailabilityService } from "@/features/availability/availability";
 
 const AddToCartSchema = z
   .object({

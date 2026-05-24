@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { requireApiKey } from "@/lib/middlewares";
-import { AvailabilityService } from "@/lib/availability";
+import { AvailabilityService } from "@/features/availability/availability";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 

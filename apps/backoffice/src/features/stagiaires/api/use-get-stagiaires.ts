@@ -56,25 +56,18 @@ export const useGetAllStagiaires = ({
 // Get stagiaire by ID
 /*------------------*/
 
-export const useGetStagiaireById = (id: string) => {
-  const query = useQuery({
+export const useGetStagiaireById = (id: string, enabled = true) => {
+  return useQuery({
     queryKey: ["stagiaire", id],
     queryFn: async () => {
       const res = await client.api.stagiaires[":id"].$get({
         param: { id },
       });
-      if (!res.ok) {
-        return null;
-      }
-
+      if (!res.ok) return null;
       const { success, message, data } = await res.json();
-      if (!success) {
-        toast.error(message);
-        return null;
-      }
+      if (!success) { toast.error(message); return null; }
       return data;
     },
+    enabled: !!id && enabled,
   });
-
-  return query;
 };

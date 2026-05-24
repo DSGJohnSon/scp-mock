@@ -69,7 +69,7 @@ export function LoginForm({
                         <Input
                           placeholder="email@email.fr"
                           type="email"
-                          // disabled={isPending}
+                          disabled={isPending}
                           {...field}
                         />
                       </FormControl>
@@ -87,20 +87,19 @@ export function LoginForm({
                         <Input
                           placeholder="xxx-xxx-xxx"
                           type="password"
-                          // disabled={isPending}
+                          disabled={isPending}
                           {...field}
                         />
                       </FormControl>
                       <div className="flex justify-between items-center w-full">
                         <FormMessage />
-                        <div className="w-full text-end">
-                          <Link
-                            href="/forgot-password"
-                            title="J'ai oublié mon mot de passe"
-                            className="text-xs text-primary hover:underline cursor-pointer">
+                        {/* Feature : MDP Oublié non implémentée pour le moment. */}
+                        {/* <div className="w-full text-end">
+                          <span
+                            className="text-xs text-primary hover:underline opacity-50 cursor-not-allowed">
                             Mot de passe oublié ?
-                          </Link>
-                        </div>
+                          </span>
+                        </div>*/}
                       </div>
                     </FormItem>
                   )}

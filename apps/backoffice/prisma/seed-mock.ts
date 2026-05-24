@@ -1,453 +1,205 @@
 /**
  * seed-mock.ts
  *
- * Populates the database with realistic mock data for development and testing.
- * Safe to run multiple times — clears existing data first (except User/Session/Account).
+ * Reset complet de la BDD + injection de données mock :
+ *   - 1 admin   : admin@scp.fr          / Admin@2024
+ *   - 3 moniteurs (better-auth accounts)
+ *   - Stages saison Juin–Septembre 2026
+ *     · INITIATION  (7j)  chaque semaine    → Armand PRATTER
+ *     · PROGRESSION (7j)  chaque semaine    → Benoît PUECH
+ *     · AUTONOMIE  (14j)  toutes les 2 sem. → Romain BERNARD
  *
- * Usage:
+ * Usage :
  *   cd apps/backoffice
- *   npx tsx prisma/seed-mock.ts
- *
- * IMPORTANT: Requires a running DB and .env.local with DATABASE_URL.
- * Run AFTER seed-admin.ts to have at least one ADMIN user.
+ *   pnpm seed:mock
  */
 
+// Charger .env.local AVANT tout import qui lit les variables d'env
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
+// ─── Config saison ────────────────────────────────────────────────────────────
+
+const SEASON_START = new Date("2026-06-06T00:00:00.000Z"); // 1er samedi de juin 2026
+const SEASON_END   = new Date("2026-10-01T00:00:00.000Z"); // exclusif — inclut le 26 sept
+
+const STAGE_CONFIG = {
+  INITIATION:  { price: 890,  acomptePrice: 200, places: 8  },
+  PROGRESSION: { price: 1090, acomptePrice: 250, places: 6  },
+  AUTONOMIE:   { price: 1490, acomptePrice: 300, places: 4  },
+} as const;
+
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/** Retourne tous les samedis entre `from` (inclus) et `to` (exclusif) */
+function collectSaturdays(from: Date, to: Date): Date[] {
+  const saturdays: Date[] = [];
+  const cursor = new Date(from);
+  // Avancer jusqu'au premier samedi si `from` n'en est pas un
+  while (cursor.getUTCDay() !== 6) cursor.setUTCDate(cursor.getUTCDate() + 1);
+  while (cursor < to) {
+    saturdays.push(new Date(cursor));
+    cursor.setUTCDate(cursor.getUTCDate() + 7);
+  }
+  return saturdays;
+}
+
+/** Retourne un samedi sur deux (indices pairs) */
+function everyOtherSaturday(from: Date, to: Date): Date[] {
+  return collectSaturdays(from, to).filter((_, i) => i % 2 === 0);
+}
+
+// ─── Main ─────────────────────────────────────────────────────────────────────
+
 async function main() {
+  // Imports dynamiques — env déjà chargé au-dessus
+  const { auth }           = await import("../src/lib/auth/auth");
   const { default: prisma } = await import("../src/lib/prisma");
 
-  console.log("\n🌱 Parapente School — Mock Data Seed\n");
+  console.log("\n🪂  SCP — Seed mock\n");
 
-  // ─── 0. Clean existing non-auth data ───────────────────────────────────────
-  console.log("🗑  Cleaning existing data...");
-  await prisma.promoCodeUsage.deleteMany();
-  await prisma.stagePromotionHistory.deleteMany();
-  await prisma.paymentAllocation.deleteMany();
-  await prisma.payment.deleteMany();
-  await prisma.orderItem.deleteMany();
-  await prisma.order.deleteMany();
-  await prisma.smsCampaignLog.deleteMany();
-  await prisma.smsCampaign.deleteMany();
-  await prisma.audienceContact.deleteMany();
-  await prisma.audienceRule.deleteMany();
-  await prisma.audience.deleteMany();
-  await prisma.cartItem.deleteMany();
-  await prisma.stageBooking.deleteMany();
-  await prisma.stageMoniteur.deleteMany();
-  await prisma.stage.deleteMany();
-  await prisma.promoCode.deleteMany();
-  await prisma.client.deleteMany();
-  await prisma.stagiaire.deleteMany();
-  console.log("   Done.\n");
+  // ── 1. Reset complet ──────────────────────────────────────────────────────
+  console.log("🗑   Reset de la base de données...");
 
-  // ─── 1. Fetch moniteur users ────────────────────────────────────────────────
-  const moniteurs = await prisma.user.findMany({
-    where: { role: { in: ["ADMIN", "MONITEUR"] } },
+  // TRUNCATE CASCADE gère les dépendances circulaires (OrderItem ↔ StageBooking)
+  // Les tables better-auth ont @@map en minuscules, les autres gardent le nom PascalCase du modèle
+  await prisma.$executeRawUnsafe(`
+    TRUNCATE TABLE
+      "ProcessedWebhookEvent",
+      "PaymentAllocation",
+      "Payment",
+      "PromoCodeUsage",
+      "StageBooking",
+      "OrderItem",
+      "Order",
+      "CartItem",
+      "CartSession",
+      "StageMoniteur",
+      "StagePromotionHistory",
+      "Stage",
+      "Client",
+      "Stagiaire",
+      "PromoCode",
+      verification,
+      session,
+      account,
+      "user"
+    CASCADE
+  `);
+  console.log("    ✓ Toutes les tables vidées\n");
+
+  // ── 2. Admin ──────────────────────────────────────────────────────────────
+  console.log("👤  Création de l'admin...");
+  const adminSignUp = await auth.api.signUpEmail({
+    body: { name: "Admin SCP", email: "admin@scp.fr", password: "Admin@2024" },
   });
+  if (!adminSignUp?.user) throw new Error("Échec de la création de l'admin");
 
-  if (moniteurs.length === 0) {
-    console.error("❌  No ADMIN/MONITEUR users found. Run seed-admin.ts first.");
-    process.exit(1);
+  await prisma.user.update({
+    where: { email: "admin@scp.fr" },
+    data:  { role: "ADMIN" },
+  });
+  console.log("    ✓ admin@scp.fr  /  Admin@2024\n");
+
+  // ── 3. Moniteurs ──────────────────────────────────────────────────────────
+  console.log("👥  Création des moniteurs...");
+
+  const MONITEURS = [
+    { name: "Armand PRATTER", email: "armand@pratter.fr"  },
+    { name: "Benoît PUECH",   email: "benoit@puech.fr"    },
+    { name: "Romain BERNARD", email: "romain@bernard.fr"  },
+  ] as const;
+
+  const moniteurIds: Record<string, string> = {};
+
+  for (const moniteur of MONITEURS) {
+    const result = await auth.api.signUpEmail({
+      body: { name: moniteur.name, email: moniteur.email, password: "Moniteur@2024" },
+    });
+    if (!result?.user) throw new Error(`Échec de la création de ${moniteur.email}`);
+
+    const user = await prisma.user.update({
+      where: { email: moniteur.email },
+      data:  { role: "MONITEUR" },
+    });
+    moniteurIds[moniteur.name] = user.id;
+    console.log(`    ✓ ${moniteur.email}`);
   }
+  console.log();
 
-  const moniteurIds = moniteurs.map((m) => m.id);
-  console.log(`✅  Found ${moniteurs.length} moniteur(s): ${moniteurs.map((m) => m.name).join(", ")}\n`);
+  const armandId = moniteurIds["Armand PRATTER"];
+  const benoitId = moniteurIds["Benoît PUECH"];
+  const romainId = moniteurIds["Romain BERNARD"];
 
-  // ─── 2. Stages ───────────────────────────────────────────────────────────────
-  console.log("🏔  Seeding stages...");
+  // ── 4. Stages saison 2026 ──────────────────────────────────────────────────
+  console.log("🏔   Génération des stages (saison Juin–Septembre 2026)...");
 
-  const stagesData = [
-    // Initiation
-    { startDate: new Date("2026-04-06"), duration: 5, places: 6, price: 680, acomptePrice: 150, type: "INITIATION" as const },
-    { startDate: new Date("2026-04-20"), duration: 5, places: 6, price: 680, acomptePrice: 150, type: "INITIATION" as const },
-    { startDate: new Date("2026-05-04"), duration: 5, places: 6, price: 680, acomptePrice: 150, type: "INITIATION" as const },
-    { startDate: new Date("2026-05-18"), duration: 5, places: 6, price: 650, acomptePrice: 150, type: "INITIATION" as const, promotionOriginalPrice: 680, promotionEndDate: new Date("2026-05-10"), promotionReason: "Promo printemps" },
-    { startDate: new Date("2026-06-01"), duration: 5, places: 8, price: 680, acomptePrice: 150, type: "INITIATION" as const },
-    { startDate: new Date("2026-06-15"), duration: 5, places: 8, price: 680, acomptePrice: 150, type: "INITIATION" as const },
-    { startDate: new Date("2026-07-06"), duration: 5, places: 8, price: 730, acomptePrice: 180, type: "INITIATION" as const },
-    { startDate: new Date("2026-07-20"), duration: 5, places: 8, price: 730, acomptePrice: 180, type: "INITIATION" as const },
-    { startDate: new Date("2026-08-03"), duration: 5, places: 8, price: 730, acomptePrice: 180, type: "INITIATION" as const },
-    // Progression
-    { startDate: new Date("2026-04-13"), duration: 5, places: 6, price: 680, acomptePrice: 150, type: "PROGRESSION" as const },
-    { startDate: new Date("2026-05-11"), duration: 5, places: 6, price: 680, acomptePrice: 150, type: "PROGRESSION" as const },
-    { startDate: new Date("2026-06-08"), duration: 5, places: 6, price: 680, acomptePrice: 150, type: "PROGRESSION" as const },
-    { startDate: new Date("2026-07-13"), duration: 5, places: 8, price: 730, acomptePrice: 180, type: "PROGRESSION" as const },
-    { startDate: new Date("2026-08-10"), duration: 5, places: 8, price: 730, acomptePrice: 180, type: "PROGRESSION" as const },
-    // Autonomie (DOUBLE = initiation + progression combined, 10 days)
-    { startDate: new Date("2026-04-06"), duration: 10, places: 4, price: 1200, acomptePrice: 250, type: "DOUBLE" as const },
-    { startDate: new Date("2026-06-01"), duration: 10, places: 4, price: 1200, acomptePrice: 250, type: "DOUBLE" as const },
-    { startDate: new Date("2026-07-06"), duration: 10, places: 4, price: 1350, acomptePrice: 300, type: "DOUBLE" as const },
-  ];
+  const weeklySats   = collectSaturdays(SEASON_START, SEASON_END);
+  const biweeklySats = everyOtherSaturday(SEASON_START, SEASON_END);
 
-  const createdStages = await Promise.all(
-    stagesData.map((s) =>
-      prisma.stage.create({
-        data: {
-          ...s,
-          moniteurs: {
-            create: [{ moniteurId: moniteurIds[0] }],
-          },
-        },
-      })
-    )
+  // — INITIATION : chaque semaine, 7 jours, Armand
+  for (const startDate of weeklySats) {
+    await prisma.stage.create({
+      data: {
+        startDate,
+        duration: 7,
+        type: "INITIATION",
+        ...STAGE_CONFIG.INITIATION,
+        moniteurs: { create: { moniteurId: armandId } },
+      },
+    });
+  }
+  console.log(
+    `    ✓ ${weeklySats.length} × INITIATION  (7j, hebdo) — Armand PRATTER`
   );
 
-  console.log(`   ✓ ${createdStages.length} stages created\n`);
-
-  // ─── 3. Clients ──────────────────────────────────────────────────────────────
-  console.log("👤  Seeding clients...");
-
-  const clientsData = [
-    { email: "alice.martin@email.fr", firstName: "Alice", lastName: "Martin", phone: "06 12 34 56 78", address: "12 Rue des Lilas", postalCode: "75011", city: "Paris", country: "France" },
-    { email: "bob.dupont@gmail.com", firstName: "Bob", lastName: "Dupont", phone: "07 23 45 67 89", address: "8 Avenue du Général de Gaulle", postalCode: "69001", city: "Lyon", country: "France" },
-    { email: "claire.leblanc@outlook.fr", firstName: "Claire", lastName: "Leblanc", phone: "06 34 56 78 90", address: "3 Rue Molière", postalCode: "13001", city: "Marseille", country: "France" },
-    { email: "david.garcia@email.fr", firstName: "David", lastName: "Garcia", phone: "06 45 67 89 01", address: "15 Rue de la Paix", postalCode: "06000", city: "Nice", country: "France" },
-    { email: "emma.rousseau@gmail.com", firstName: "Emma", lastName: "Rousseau", phone: "07 56 78 90 12", address: "22 Boulevard Victor Hugo", postalCode: "31000", city: "Toulouse", country: "France" },
-    { email: "florent.bernard@email.fr", firstName: "Florent", lastName: "Bernard", phone: "06 67 89 01 23", address: "5 Place Bellecour", postalCode: "69002", city: "Lyon", country: "France" },
-    { email: "gabriel.petit@hotmail.fr", firstName: "Gabriel", lastName: "Petit", phone: "06 78 90 12 34", address: "47 Rue de Bretagne", postalCode: "75003", city: "Paris", country: "France" },
-    { email: "hugo.roux@gmail.com", firstName: "Hugo", lastName: "Roux", phone: "07 89 01 23 45", address: "9 Rue du Faubourg Saint-Honoré", postalCode: "75008", city: "Paris", country: "France" },
-  ];
-
-  const createdClients = await Promise.all(
-    clientsData.map((c) => prisma.client.create({ data: c }))
+  // — PROGRESSION : chaque semaine, 7 jours, Benoît
+  for (const startDate of weeklySats) {
+    await prisma.stage.create({
+      data: {
+        startDate,
+        duration: 7,
+        type: "PROGRESSION",
+        ...STAGE_CONFIG.PROGRESSION,
+        moniteurs: { create: { moniteurId: benoitId } },
+      },
+    });
+  }
+  console.log(
+    `    ✓ ${weeklySats.length} × PROGRESSION (7j, hebdo) — Benoît PUECH`
   );
 
-  console.log(`   ✓ ${createdClients.length} clients created\n`);
-
-  // ─── 4. Stagiaires ────────────────────────────────────────────────────────────
-  console.log("🎓  Seeding stagiaires...");
-
-  const stagiairesData = [
-    { email: "alice.martin@email.fr", firstName: "Alice", lastName: "Martin", phone: "06 12 34 56 78", weight: 58, height: 165, birthDate: new Date("1992-04-15") },
-    { email: "bob.dupont@gmail.com", firstName: "Bob", lastName: "Dupont", phone: "07 23 45 67 89", weight: 75, height: 178, birthDate: new Date("1988-11-22") },
-    { email: "claire.leblanc@outlook.fr", firstName: "Claire", lastName: "Leblanc", phone: "06 34 56 78 90", weight: 62, height: 168, birthDate: new Date("1995-07-03") },
-    { email: "david.garcia@email.fr", firstName: "David", lastName: "Garcia", phone: "06 45 67 89 01", weight: 80, height: 180, birthDate: new Date("1984-02-28") },
-    { email: "emma.rousseau@gmail.com", firstName: "Emma", lastName: "Rousseau", phone: "07 56 78 90 12", weight: 55, height: 162, birthDate: new Date("1999-09-12") },
-    { email: "sophie.moreau@email.fr", firstName: "Sophie", lastName: "Moreau", phone: "06 91 23 45 67", weight: 60, height: 166, birthDate: new Date("1990-06-18") },
-    { email: "thomas.girard@gmail.com", firstName: "Thomas", lastName: "Girard", phone: "07 02 34 56 78", weight: 72, height: 175, birthDate: new Date("1986-12-05") },
-    { email: "lucie.fournier@hotmail.fr", firstName: "Lucie", lastName: "Fournier", phone: "06 13 45 67 89", weight: 57, height: 163, birthDate: new Date("1997-03-25") },
-    { email: "marc.simon@email.fr", firstName: "Marc", lastName: "Simon", phone: "07 24 56 78 90", weight: 85, height: 182, birthDate: new Date("1981-08-14") },
-    { email: "isabelle.durand@gmail.com", firstName: "Isabelle", lastName: "Durand", phone: "06 35 67 89 01", weight: 63, height: 169, birthDate: new Date("1993-01-30") },
-  ];
-
-  const createdStagiaires = await Promise.all(
-    stagiairesData.map((s) => prisma.stagiaire.create({ data: s }))
+  // — AUTONOMIE : toutes les 2 semaines, 14 jours, Romain
+  for (const startDate of biweeklySats) {
+    await prisma.stage.create({
+      data: {
+        startDate,
+        duration: 14,
+        type: "AUTONOMIE",
+        ...STAGE_CONFIG.AUTONOMIE,
+        moniteurs: { create: { moniteurId: romainId } },
+      },
+    });
+  }
+  console.log(
+    `    ✓ ${biweeklySats.length} × AUTONOMIE  (14j, bi-hebdo) — Romain BERNARD`
   );
 
-  console.log(`   ✓ ${createdStagiaires.length} stagiaires created\n`);
+  const total = weeklySats.length * 2 + biweeklySats.length;
 
-  // ─── 5. Promo Codes ──────────────────────────────────────────────────────────
-  console.log("🏷  Seeding promo codes...");
-
-  await prisma.promoCode.createMany({
-    data: [
-      {
-        code: "PROMO10",
-        label: "Réduction 10% — toute l'année",
-        discountType: "PERCENTAGE",
-        discountValue: 10,
-        maxDiscountAmount: 80,
-        isActive: true,
-      },
-      {
-        code: "ETE2026",
-        label: "Promo été 2026 — -50€",
-        discountType: "FIXED",
-        discountValue: 50,
-        minCartAmount: 300,
-        expiryDate: new Date("2026-08-31"),
-        isActive: true,
-      },
-      {
-        code: "BIENVENUE",
-        label: "Bienvenue — -20€ dès 100€",
-        discountType: "FIXED",
-        discountValue: 20,
-        minCartAmount: 100,
-        maxUses: 50,
-        currentUses: 12,
-        isActive: true,
-      },
-      {
-        code: "EXPIREDTEST",
-        label: "Code expiré (test)",
-        discountType: "PERCENTAGE",
-        discountValue: 15,
-        expiryDate: new Date("2025-12-31"),
-        isActive: false,
-      },
-    ],
-  });
-
-  console.log("   ✓ 4 promo codes created");
-  console.log("   📋 Codes for testing:");
-  console.log("   PROMO10     → -10% (max 80€)");
-  console.log("   ETE2026     → -50€ (min panier 300€, expire 31/08/2026)");
-  console.log("   BIENVENUE   → -20€ (min panier 100€, max 50 utilisations)");
-  console.log("   EXPIREDTEST → expiré, désactivé ✗\n");
-
-  // ─── 6. Mock orders with confirmed bookings ───────────────────────────────────
-  console.log("📦  Seeding mock orders with reservations...");
-
-  const clientAlice      = createdClients[0]; // alice.martin@email.fr
-  const clientBob        = createdClients[1]; // bob.dupont@gmail.com
-  const stagiaireThomas  = createdStagiaires[6]; // thomas.girard@gmail.com
-  const stagiaireBob     = createdStagiaires[1]; // bob.dupont@gmail.com
-  const stageInitiation1 = createdStages[0]; // 06 Apr 2026, INITIATION, 680€, acompte 150€
-  const stageProgression1 = createdStages[9]; // 13 Apr 2026, PROGRESSION, 680€, acompte 150€
-
-  // --- Order 1 : Stage Initiation — Alice (payeur) pour Thomas (stagiaire) ---
-  const stageBooking1 = await prisma.stageBooking.create({
-    data: {
-      type: "INITIATION",
-      stageId: stageInitiation1.id,
-      stagiaireId: stagiaireThomas.id,
-      shortCode: "SCP-TEST01",
-    },
-  });
-
-  const order1 = await prisma.order.create({
-    data: {
-      orderNumber: "ORD-2026-MOCK01",
-      status: "PAID",
-      subtotal: 680,
-      discountAmount: 0,
-      promoDiscountAmount: 0,
-      totalAmount: 680,
-      clientId: clientAlice.id,
-      orderItems: {
-        create: [
-          {
-            type: "STAGE",
-            quantity: 1,
-            unitPrice: 680,
-            totalPrice: 680,
-            depositAmount: 150,
-            remainingAmount: 530,
-            effectiveDepositAmount: 150,
-            effectiveRemainingAmount: 530,
-            isFullyPaid: false,
-            stageId: stageInitiation1.id,
-            stageBookingId: stageBooking1.id,
-            participantData: {
-              firstName: "Thomas",
-              lastName: "Girard",
-              email: "thomas.girard@gmail.com",
-              phone: "0702345678",
-              weight: 72,
-              height: 175,
-              selectedStageType: "INITIATION",
-            },
-          },
-        ],
-      },
-    },
-    include: { orderItems: true },
-  });
-
-  const payment1 = await prisma.payment.create({
-    data: {
-      orderId: order1.id,
-      paymentType: "STRIPE",
-      stripePaymentIntentId: "pi_mock_stage_test_01",
-      status: "SUCCEEDED",
-      amount: 150,
-      currency: "eur",
-    },
-  });
-
-  await prisma.paymentAllocation.create({
-    data: {
-      paymentId: payment1.id,
-      orderItemId: order1.orderItems[0].id,
-      allocatedAmount: 150,
-    },
-  });
-
-  // --- Order 2 : Stage Progression — Bob (payeur + stagiaire), solde entièrement payé ---
-  const stageBooking2 = await prisma.stageBooking.create({
-    data: {
-      type: "PROGRESSION",
-      stageId: stageProgression1.id,
-      stagiaireId: stagiaireBob.id,
-      shortCode: "SCP-TEST02",
-    },
-  });
-
-  const order2 = await prisma.order.create({
-    data: {
-      orderNumber: "ORD-2026-MOCK02",
-      status: "FULLY_PAID",
-      subtotal: 680,
-      discountAmount: 0,
-      promoDiscountAmount: 0,
-      totalAmount: 680,
-      clientId: clientBob.id,
-      orderItems: {
-        create: [
-          {
-            type: "STAGE",
-            quantity: 1,
-            unitPrice: 680,
-            totalPrice: 680,
-            depositAmount: 150,
-            remainingAmount: 530,
-            effectiveDepositAmount: 150,
-            effectiveRemainingAmount: 530,
-            isFullyPaid: true,
-            stageId: stageProgression1.id,
-            stageBookingId: stageBooking2.id,
-            participantData: {
-              firstName: "Bob",
-              lastName: "Dupont",
-              email: "bob.dupont@gmail.com",
-              phone: "0723456789",
-              weight: 75,
-              height: 178,
-              selectedStageType: "PROGRESSION",
-            },
-          },
-        ],
-      },
-    },
-    include: { orderItems: true },
-  });
-
-  const payment2a = await prisma.payment.create({
-    data: {
-      orderId: order2.id,
-      paymentType: "STRIPE",
-      stripePaymentIntentId: "pi_mock_stage_test_02a",
-      status: "SUCCEEDED",
-      amount: 150,
-      currency: "eur",
-    },
-  });
-
-  await prisma.paymentAllocation.create({
-    data: { paymentId: payment2a.id, orderItemId: order2.orderItems[0].id, allocatedAmount: 150 },
-  });
-
-  const payment2b = await prisma.payment.create({
-    data: {
-      orderId: order2.id,
-      paymentType: "MANUAL",
-      isManual: true,
-      manualPaymentMethod: "CASH",
-      status: "SUCCEEDED",
-      amount: 530,
-      currency: "eur",
-    },
-  });
-
-  await prisma.paymentAllocation.create({
-    data: { paymentId: payment2b.id, orderItemId: order2.orderItems[0].id, allocatedAmount: 530 },
-  });
-
-  console.log("   ✓ 2 mock orders created");
-  console.log("   ORD-2026-MOCK01 → Stage Initiation, acompte 150€, solde 530€ (Alice → Thomas)");
-  console.log("   ORD-2026-MOCK02 → Stage Progression, entièrement payé 680€ (Bob, acompte Stripe + solde espèces)\n");
-
-  // ─── 7. Ghost order (PENDING, 48h old) ──────────────────────────────────────
-  console.log("👻  Seeding ghost order (for cleanup test)...");
-
-  const fortyEightHoursAgo = new Date();
-  fortyEightHoursAgo.setHours(fortyEightHoursAgo.getHours() - 48);
-
-  await prisma.order.create({
-    data: {
-      orderNumber: "ORD-2026-GHOST1",
-      status: "PENDING",
-      subtotal: 680,
-      discountAmount: 0,
-      promoDiscountAmount: 0,
-      totalAmount: 680,
-      createdAt: fortyEightHoursAgo,
-      updatedAt: fortyEightHoursAgo,
-      orderItems: {
-        create: [
-          {
-            type: "STAGE",
-            quantity: 1,
-            unitPrice: 680,
-            totalPrice: 680,
-            depositAmount: 150,
-            remainingAmount: 530,
-            isFullyPaid: false,
-            stageId: createdStages[2].id,
-            participantData: {
-              firstName: "Fantôme",
-              lastName: "Test",
-              email: "ghost.order@test.fr",
-            },
-          },
-        ],
-      },
-    },
-  });
-
-  console.log("   ✓ Ghost order ORD-2026-GHOST1 created (48h old, PENDING, no payment)\n");
-
-  // ─── 8. Audiences & Campaign SMS ─────────────────────────────────────────────
-  console.log("📢  Seeding audiences and SMS campaign...");
-
-  const audience1 = await prisma.audience.create({
-    data: {
-      name: "Anciens stagiaires — Initiation",
-      description: "Clients ayant participé à un stage Initiation",
-      rules: {
-        create: [{ ruleType: "STAGIAIRE_STAGE", stageType: "INITIATION" }],
-      },
-    },
-  });
-
-  await prisma.audience.create({
-    data: {
-      name: "Contacts manuels — Test",
-      description: "Audience avec contacts saisis manuellement pour tester",
-      contacts: {
-        create: [
-          { phone: "+33612345678", name: "Marie Dupont" },
-          { phone: "+33698765432", name: "Pierre Martin" },
-          { phone: "+33623456789", name: "Camille Robert" },
-        ],
-      },
-    },
-  });
-
-  await prisma.smsCampaign.create({
-    data: {
-      name: "Promotion Été 2026 — Stages",
-      content:
-        "Bonjour ! Réservez votre stage parapente été 2026 avec -50€ (code ETE2026). Infos et réservations : votre-ecole-parapente.fr",
-      status: "DRAFT",
-      audiences: { connect: [{ id: audience1.id }] },
-    },
-  });
-
-  console.log("   ✓ 2 audiences created");
-  console.log("   ✓ 1 draft SMS campaign created\n");
-
-  // ─── 9. Summary ──────────────────────────────────────────────────────────────
-  console.log("═══════════════════════════════════════════════════════");
-  console.log("✅  Mock data seed completed!\n");
-  console.log("📊  Summary:");
-  console.log(`   • ${stagesData.length} stages (avril → août 2026)`);
-  console.log(`   • ${clientsData.length} clients`);
-  console.log(`   • ${stagiairesData.length} stagiaires`);
-  console.log("   • 4 codes promo (dont 1 inactif)");
-  console.log("   • 2 commandes payées avec réservations de stage");
-  console.log("   • 1 commande fantôme (GHOST1, 48h, PENDING, aucun paiement)");
-  console.log("   • 2 audiences + 1 campagne SMS DRAFT\n");
-  console.log("🔑  Test accounts (run seed-admin.ts to create admin first)");
-  console.log("═══════════════════════════════════════════════════════\n");
+  console.log(`\n✅  Seed terminé — ${total} stages créés.\n`);
+  console.log("─────────────────────────────────────────");
+  console.log("  Comptes créés :");
+  console.log("  admin@scp.fr          Admin@2024      [ADMIN]");
+  console.log("  armand@pratter.fr     Moniteur@2024   [MONITEUR]");
+  console.log("  benoit@puech.fr       Moniteur@2024   [MONITEUR]");
+  console.log("  romain@bernard.fr     Moniteur@2024   [MONITEUR]");
+  console.log("─────────────────────────────────────────\n");
 
   await prisma.$disconnect();
 }
 
 main().catch((err) => {
-  console.error(err);
+  console.error("\n❌ Seed échoué :", err);
   process.exit(1);
 });

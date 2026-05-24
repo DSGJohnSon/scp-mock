@@ -1,8 +1,8 @@
 "use client"
 
 import * as React from "react"
-import { Check } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TickIcon } from "@/lib/icons"
 
 interface CheckboxProps {
   id?: string
@@ -35,7 +35,7 @@ const Checkbox = React.forwardRef<HTMLInputElement, CheckboxProps>(
           onClick={() => !disabled && onCheckedChange?.(!checked)}
         >
           {checked && (
-            <Check className="h-4 w-4 text-white" />
+            <TickIcon className="h-4 w-4 text-white" />
           )}
         </div>
       </div>

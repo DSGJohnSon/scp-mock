@@ -1,20 +1,30 @@
 import { useQuery } from "@tanstack/react-query";
 import { client } from "@/lib/rpc";
+import { toast } from "sonner";
 
 export const useGetPayments = () => {
-  const query = useQuery({
+  return useQuery({
     queryKey: ["payments"],
     queryFn: async () => {
       const response = await client.api.payments.$get();
 
       if (!response.ok) {
-        throw new Error("Failed to fetch payments");
+        toast.error("Erreur lors de la récupération des paiements");
+        return null;
       }
 
-      const { data } = await response.json();
-      return data;
+      const { success, message, data } = await response.json();
+
+      if (!success) {
+        toast.error(message);
+        return null;
+      }
+
+      return data.map((item) => ({
+        ...item,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+      }));
     },
   });
-
-  return query;
 };

@@ -23,10 +23,34 @@ export async function handleListOrders(c: Context){
           select: { id: true, firstName: true, lastName: true, email: true },
         },
         orderItems: {
-          select: { id: true, type: true, quantity: true, totalPrice: true },
+          select: {
+            id: true,
+            type: true,
+            quantity: true,
+            totalPrice: true,
+            isFullyPaid: true,
+            discountAmount: true,
+            finalDiscountAmount: true,
+            effectiveDepositAmount: true,
+            stage: { select: { type: true, startDate: true } },
+            stageBooking: {
+              select: {
+                stagiaire: { select: { firstName: true, lastName: true } },
+              },
+            },
+          },
         },
         payments: {
-          select: { id: true, status: true, amount: true },
+          select: {
+            id: true,
+            status: true,
+            amount: true,
+            createdAt: true,
+            isManual: true,
+            manualPaymentMethod: true,
+            manualPaymentNote: true,
+            stripePaymentIntentId: true,
+          },
         },
       },
       orderBy: { createdAt: "desc" },

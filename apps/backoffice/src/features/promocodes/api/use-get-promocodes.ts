@@ -13,7 +13,12 @@ export const useGetPromoCodes = () => {
         toast.error(message);
         return null;
       }
-      return data;
+      return data.map((item) => ({
+        ...item,
+        expiryDate: item.expiryDate ? new Date(item.expiryDate) : null,
+        createdAt: new Date(item.createdAt),
+        updatedAt: new Date(item.updatedAt),
+      }));
     },
   });
 };

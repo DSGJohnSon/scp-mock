@@ -1,6 +1,4 @@
 // HTTP response contract for GET /api/reservations/:id
-// Only fields actually consumed by reservation-details.tsx are included.
-// Dates are typed as string — they arrive serialised from JSON.
 
 interface ReservationDetailMoniteur {
   id: string;
@@ -8,11 +6,12 @@ interface ReservationDetailMoniteur {
 }
 
 interface ReservationDetailActivity {
+  id: string;
+  type: string;
   duration: number;
   places: number;
   moniteurs: ReservationDetailMoniteur[];
-  startDate?: string; // stage
-  date?: string;      // bapteme
+  startDate: string;
 }
 
 interface ReservationDetailStagiaire {
@@ -52,11 +51,11 @@ interface ReservationDetailPayment {
 interface ReservationDetailPaymentAllocation {
   id: string;
   allocatedAmount: number;
-  // PaymentAllocation.paymentId is a required FK — payment is always present
   payment: ReservationDetailPayment;
 }
 
 interface ReservationDetailOrder {
+  id: string;
   orderNumber: string;
   status: string;
   createdAt: string;
@@ -72,9 +71,6 @@ interface ReservationDetailOrderItem {
   isFullyPaid: boolean;
   finalPaymentDate: string | null;
   finalPaymentNote: string | null;
-  finalDiscountAmount: number | null;
-  finalDiscountNote: string | null;
-  finalDiscountDate: string | null;
   discountAmount: number | null;
   usedGiftVoucher: { code: string } | null;
   paymentAllocations: ReservationDetailPaymentAllocation[];
@@ -82,18 +78,16 @@ interface ReservationDetailOrderItem {
 }
 
 interface ReservationDetailBooking {
+  id: string;
+  status: "CONFIRMED" | "CANCELLED";
   stagiaire: ReservationDetailStagiaire;
   orderItem: ReservationDetailOrderItem | null;
   stage: ReservationDetailActivity;
   type: string;
-  // Bapteme-only (handler currently always returns STAGE; kept for type-safety of dead branches)
-  bapteme?: ReservationDetailActivity;
-  category?: string;
-  hasVideo?: boolean;
 }
 
 export interface ReservationDetail {
-  type: string;
+  type: "STAGE";
   booking: ReservationDetailBooking;
   availablePlaces: {
     total: number;

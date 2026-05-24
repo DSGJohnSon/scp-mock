@@ -24,6 +24,7 @@ import {
   Tag01Icon,
   UserMultipleIcon,
   // UI
+  MoreHorizontalIcon,
   Notification01Icon,
   ArrowRight01Icon,
   ArrowLeft01Icon,
@@ -87,6 +88,10 @@ import {
   SentIcon,
   Tick01Icon,
   SortingIcon,
+  UserMultiple03FreeIcons,
+  ChevronsUpDown,
+  Circle,
+  PanelLeft,
 } from "@hugeicons/core-free-icons";
 import type { SVGProps } from "react";
 
@@ -143,10 +148,15 @@ export const ChevronRightIcon = icon(ArrowRight01Icon);
 export const ChevronLeftIcon = icon(ArrowLeft01Icon);
 export const ChevronDownIcon = icon(ArrowDown01Icon);
 export const ChevronUpIcon = icon(ArrowUp01Icon);
+export const MoreHorizontal0Icon = icon(MoreHorizontalIcon);
+export const TickIcon = icon(Tick01Icon);
+export const CircleIcon = icon(Circle);
+export const ChevronsUpDownIcon = icon(ChevronsUpDown);
 export const ExternalLinkIcon = icon(ArrowUpRight01Icon);
 export const LogoutIcon = icon(Logout01Icon);
 export const LoaderIcon = icon(Loading03Icon);
 export const SidebarIcon = icon(ViewSidebarLeftIcon);
+export const PanelLeftIcon = icon(PanelLeft);
 
 // ─── Dashboard / Analytics ────────────────────────────────────────────────────
 export const TrendingUpIcon = icon(ChartIncreaseIcon);
@@ -193,6 +203,7 @@ export const MailIcon = icon(Mail01Icon);
 export const UserIcon = icon(User03Icon);
 export const UserAddIcon = icon(UserAdd01Icon);
 export const UserCircleIcon2 = icon(UserCircleIcon);
+export const UserMultiple03Icon = icon(UserMultiple03FreeIcons);
 export const UserEditIcon2 = icon(UserEdit01Icon);
 
 // ─── Misc ─────────────────────────────────────────────────────────────────────

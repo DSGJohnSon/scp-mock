@@ -11,7 +11,7 @@ export const useCreateStage = () => {
   const router = useRouter();
   const queryClient = useQueryClient();
 
-  const mutation = useMutation<ResponseType, Error, RequestType>({
+  return useMutation<ResponseType, Error, RequestType>({
     mutationFn: async (json) => {
       const response = await client.api.stages["$post"]({ json });
       return await response.json();
@@ -25,11 +25,6 @@ export const useCreateStage = () => {
         toast.error(response.message);
       }
     },
-    onError: (error: Error) => {
-      toast.error("Erreur lors de la création du stage");
-      console.error(error);
-    },
+    onError: () => toast.error("Erreur lors de la création du stage"),
   });
-
-  return mutation;
 };

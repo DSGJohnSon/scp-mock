@@ -1,8 +1,8 @@
-import { AppSidebar } from "@/components/sidebar/user/app-sidebar";
+import { AppSidebar } from "@/components/sidebar/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { DashboardHeader } from "@/components/dashboard-header";
-import { getCurrent } from "@/features/auth/actions";
+import { DashboardHeader } from "@/app/(post-auth)/dashboard/dashboard-header";
 import { redirect } from "next/navigation";
+import { getCurrent } from "@/features/auth/actions";
 
 export default async function DashboardClientLayout({
   children,
@@ -14,7 +14,7 @@ export default async function DashboardClientLayout({
     redirect("/sign-in");
   }
   if (user?.role === "CUSTOMER") {
-    redirect("/account");
+    redirect("/");
   }
 
   return (

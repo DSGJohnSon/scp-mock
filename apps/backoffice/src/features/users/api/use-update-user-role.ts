@@ -1,7 +1,8 @@
+"use client";
+
 import { client } from "@/lib/rpc";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { InferRequestType, InferResponseType } from "hono";
-import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 
 type ResponseType = InferResponseType<
@@ -12,30 +13,23 @@ type RequestType = InferRequestType<
 >;
 
 export const useUpdateUserRole = () => {
-  const router = useRouter();
   const queryClient = useQueryClient();
 
-  const mutation = useMutation<ResponseType, Error, RequestType>({
+  return useMutation<ResponseType, Error, RequestType>({
     mutationFn: async ({ param, json }) => {
-      const response = await client.api.users[":id"].role["$patch"]({ param, json });
-      return await response.json();
+      const res = await client.api.users[":id"].role["$patch"]({ param, json });
+      return await res.json();
     },
-    onSuccess: (response, { json }) => {
+    onSuccess: (response) => {
       if (response.success) {
         toast.success(response.message);
-
-        queryClient.invalidateQueries({ queryKey: ["users", json.role] });
-        queryClient.invalidateQueries({ queryKey: ["users", response.data?.role] });
-
-        router.refresh();
+        queryClient.invalidateQueries({ queryKey: ["users"] });
       } else {
         toast.error(response.message);
       }
     },
-    onError: (error: Error) => {
+    onError: (error) => {
       toast.error(error.message);
     },
   });
-
-  return mutation;
 };

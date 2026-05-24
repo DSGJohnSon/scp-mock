@@ -51,6 +51,11 @@ enum StageBookingType {
   AUTONOMIE
 }
 
+enum BookingStatus {
+  CONFIRMED
+  CANCELLED
+}
+
 enum CartItemType {
   STAGE
 }
@@ -58,32 +63,6 @@ enum CartItemType {
 enum DiscountType {
   FIXED
   PERCENTAGE
-}
-
-enum AudienceRuleType {
-  CLIENT_RESERVED_STAGE
-  STAGIAIRE_STAGE
-  ORDER_ABOVE_AMOUNT
-  CLIENT_NO_ORDER
-  STAGIAIRE_NO_BOOKING
-}
-
-enum CampaignStatus {
-  DRAFT
-  SCHEDULED
-  SENDING
-  COMPLETED
-  FAILED
-}
-
-enum SmsStatus {
-  ACCEPTED
-  QUEUED
-  SENDING
-  SENT
-  DELIVERED
-  UNDELIVERED
-  FAILED
 }
 
 enum OrderStatus {
@@ -254,6 +233,7 @@ model StageBooking {
   id          String           @id @default(cuid())
   shortCode   String?          @unique // ex: SCP-X3K9 — généré à la création
   type        StageBookingType @default(INITIATION)
+  status      BookingStatus    @default(CONFIRMED)
   stageId     String
   stage       Stage            @relation(fields: [stageId], references: [id])
   stagiaireId String
@@ -524,14 +504,11 @@ model PromoCode {
   expiryDate DateTime?
   isActive   Boolean   @default(true)
 
-  campaignId String?
-
   usages PromoCodeUsage[]
   orders Order[]
 
   createdAt   DateTime     @default(now())
   updatedAt   DateTime     @updatedAt
-  smsCampaign SmsCampaign? @relation(fields: [campaignId], references: [id])
 
   @@index([code])
   @@index([isActive])
@@ -548,102 +525,4 @@ model PromoCodeUsage {
   createdAt       DateTime  @default(now())
 
   @@index([promoCodeId])
-}
-
-// -----------------------------------------------------------------------------
-// 10. Marketing SMS
-// -----------------------------------------------------------------------------
-
-// Segment de contacts ciblés pour les campagnes
-model Audience {
-  id          String            @id @default(cuid())
-  name        String
-  description String?
-  rules       AudienceRule[]
-  contacts    AudienceContact[]
-  campaigns   SmsCampaign[]
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
-}
-
-// Règle de filtrage dynamique d'une audience
-model AudienceRule {
-  id         String           @id @default(cuid())
-  audienceId String
-  audience   Audience         @relation(fields: [audienceId], references: [id], onDelete: Cascade)
-  ruleType   AudienceRuleType
-
-  stageType      StageBookingType?
-  minOrderAmount Float?
-
-  dateFrom DateTime?
-  dateTo   DateTime?
-
-  createdAt DateTime @default(now())
-
-  @@index([audienceId])
-}
-
-// Contact ajouté manuellement dans une audience
-model AudienceContact {
-  id         String   @id @default(cuid())
-  audienceId String
-  audience   Audience @relation(fields: [audienceId], references: [id], onDelete: Cascade)
-  phone      String
-  name       String?
-
-  createdAt DateTime @default(now())
-
-  @@unique([audienceId, phone])
-  @@index([audienceId])
-}
-
-// Campagne SMS
-model SmsCampaign {
-  id          String         @id @default(cuid())
-  name        String
-  content     String
-  status      CampaignStatus @default(DRAFT)
-  scheduledAt DateTime?
-  sentAt      DateTime?
-
-  audiences Audience[]
-
-  // Paramètres de génération de codes promo à l'envoi
-  generatePromoCode      Boolean       @default(false)
-  promoDiscountType      DiscountType?
-  promoDiscountValue     Float?
-  promoMaxDiscountAmount Float?
-  promoMinCartAmount     Float?
-  promoMaxUses           Int?
-  promoExpiryDate        DateTime?
-
-  promoCodes PromoCode[]
-  logs       SmsCampaignLog[]
-
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-
-  @@index([status])
-}
-
-// Suivi d'envoi individuel par destinataire
-model SmsCampaignLog {
-  id         String      @id @default(cuid())
-  campaignId String
-  campaign   SmsCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-
-  recipientPhone String
-  recipientName  String?
-
-  messageSid   String?
-  status       SmsStatus @default(QUEUED)
-  errorMessage String?
-
-  sentAt    DateTime?
-  createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
-
-  @@index([campaignId])
-  @@index([status])
 }

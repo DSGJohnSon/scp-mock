@@ -9,23 +9,25 @@ import { toast } from "sonner";
 //Get all users
 //*------------------*//
 export const useGetAllUsers = () => {
-  const query = useQuery({
+  return useQuery({
     queryKey: ["users"],
     queryFn: async () => {
       const res = await client.api.users["$get"]();
-      if (!res.ok) {
-        return null;
-      }
+      if (!res.ok) return null;
 
       const { success, message, data } = await res.json();
       if (!success) {
         toast.error(message);
         return null;
       }
-      return { data };
+
+      return (data ?? []).map((u) => ({
+        ...u,
+        createdAt: new Date(u.createdAt),
+        updatedAt: new Date(u.updatedAt),
+      }));
     },
   });
-  return query;
 };
 
 //*------------------*//

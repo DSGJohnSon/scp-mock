@@ -2,7 +2,6 @@
 
 import * as React from "react";
 import { cva, type VariantProps } from "class-variance-authority";
-import { CheckIcon, XCircle, ChevronDown, XIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { Separator } from "@/components/ui/separator";
@@ -22,6 +21,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command";
+import { ChevronDownIcon, TickIcon, XCircleIcon, XIcon } from "@/lib/icons";
 
 /**
  * Variants for the multi-select component to handle different styles.
@@ -211,7 +211,7 @@ export const MultiSelect = React.forwardRef<
                           <IconComponent className="h-4 w-4 mr-2" />
                         )}
                         {option?.label}
-                        <XCircle
+                        <XCircleIcon
                           className="ml-2 h-4 w-4 cursor-pointer"
                           onClick={(event) => {
                             event.stopPropagation();
@@ -229,7 +229,7 @@ export const MultiSelect = React.forwardRef<
                       )}
                     >
                       {`+ ${selectedValues.length - maxCount} more`}
-                      <XCircle
+                      <XCircleIcon
                         className="ml-2 h-4 w-4 cursor-pointer"
                         onClick={(event) => {
                           event.stopPropagation();
@@ -251,7 +251,7 @@ export const MultiSelect = React.forwardRef<
                     orientation="vertical"
                     className="flex min-h-6 h-full"
                   />
-                  <ChevronDown className="h-4 mx-2 cursor-pointer text-muted-foreground" />
+                  <ChevronDownIcon className="h-4 mx-2 cursor-pointer text-muted-foreground" />
                 </div>
               </div>
             ) : (
@@ -259,7 +259,7 @@ export const MultiSelect = React.forwardRef<
                 <span className="text-sm text-muted-foreground mx-3">
                   {placeholder}
                 </span>
-                <ChevronDown className="h-4 cursor-pointer text-muted-foreground mx-2" />
+                <ChevronDownIcon className="h-4 cursor-pointer text-muted-foreground mx-2" />
               </div>
             )}
           </Button>
@@ -290,7 +290,7 @@ export const MultiSelect = React.forwardRef<
                         : "opacity-50 [&_svg]:invisible"
                     )}
                   >
-                    <CheckIcon className="h-4 w-4" />
+                    <TickIcon className="h-4 w-4" />
                   </div>
                   <span>(Select All)</span>
                 </CommandItem>
@@ -311,7 +311,7 @@ export const MultiSelect = React.forwardRef<
                             : "opacity-50 [&_svg]:invisible"
                         )}
                       >
-                        <CheckIcon className="h-4 w-4" />
+                        <TickIcon className="h-4 w-4" />
                       </div>
                       {option.icon && (
                         <option.icon className="mr-2 h-4 w-4 text-muted-foreground" />

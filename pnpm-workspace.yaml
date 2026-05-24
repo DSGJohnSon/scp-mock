@@ -1,3 +1,30 @@
 packages:
   - "apps/*"
   - "packages/*"
+
+overrides:
+  "@types/react": "19.2.14"
+  "@types/react-dom": "19.2.3"
+
+allowedDeprecatedVersions:
+  "@react-email/components": "*"
+  eslint: "8"
+
+peerDependencyRules:
+  allowedVersions:
+    react: "^19"
+    react-dom: "^19"
+    "better-call>zod": "3"
+    "@typescript-eslint/parser>eslint": "9"
+    "@typescript-eslint/eslint-plugin>eslint": "9"
+    "@typescript-eslint/type-utils>eslint": "9"
+    "@typescript-eslint/utils>eslint": "9"
+
+allowBuilds:
+  '@prisma/client': true
+  '@prisma/engines': true
+  esbuild: true
+  prisma: true
+  sharp: true
+  simple-git-hooks: true
+  unrs-resolver: true

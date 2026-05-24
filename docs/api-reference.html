@@ -1,0 +1,1625 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SCP Mock — API Reference</title>
+<style>
+  :root {
+    --bg: #0f1117;
+    --bg2: #161b27;
+    --bg3: #1e2636;
+    --border: #2a3347;
+    --text: #e2e8f0;
+    --muted: #8892a4;
+    --accent: #3b82f6;
+    --accent-dim: #1d3a6e;
+    --green: #22c55e;
+    --green-dim: #14532d;
+    --yellow: #f59e0b;
+    --yellow-dim: #451a03;
+    --red: #ef4444;
+    --red-dim: #450a0a;
+    --purple: #a855f7;
+    --purple-dim: #3b0764;
+    --cyan: #06b6d4;
+    --cyan-dim: #083344;
+    --orange: #f97316;
+    --sidebar-w: 280px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; font-size: 14px; line-height: 1.6; display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  nav { width: var(--sidebar-w); min-width: var(--sidebar-w); background: var(--bg2); border-right: 1px solid var(--border); position: sticky; top: 0; height: 100vh; overflow-y: auto; padding: 24px 0; display: flex; flex-direction: column; gap: 4px; }
+  .nav-logo { padding: 0 20px 20px; border-bottom: 1px solid var(--border); margin-bottom: 12px; }
+  .nav-logo h1 { font-size: 16px; font-weight: 700; color: var(--text); }
+  .nav-logo p { font-size: 11px; color: var(--muted); margin-top: 2px; }
+  .nav-section { padding: 6px 20px 2px; font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .1em; color: var(--muted); margin-top: 8px; }
+  nav a { display: flex; align-items: center; gap: 8px; padding: 6px 20px; color: var(--muted); text-decoration: none; font-size: 13px; border-left: 2px solid transparent; transition: all .15s; }
+  nav a:hover { color: var(--text); background: var(--bg3); }
+  nav a.active { color: var(--accent); border-left-color: var(--accent); background: var(--accent-dim); }
+  nav a .badge { font-size: 10px; padding: 1px 6px; border-radius: 9999px; font-weight: 600; margin-left: auto; }
+
+  /* MAIN */
+  main { flex: 1; overflow-y: auto; padding: 40px 48px; max-width: 960px; }
+  section { margin-bottom: 64px; }
+  h2 { font-size: 22px; font-weight: 700; color: var(--text); margin-bottom: 6px; display: flex; align-items: center; gap: 12px; }
+  h2 .section-icon { font-size: 20px; }
+  .section-desc { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+
+  /* METHOD BADGE */
+  .method { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 700; letter-spacing: .05em; min-width: 52px; text-align: center; }
+  .GET    { background: var(--green-dim);  color: var(--green); }
+  .POST   { background: var(--accent-dim); color: var(--accent); }
+  .PUT    { background: var(--yellow-dim); color: var(--yellow); }
+  .PATCH  { background: var(--purple-dim); color: var(--purple); }
+  .DELETE { background: var(--red-dim);    color: var(--red); }
+
+  /* AUTH BADGE */
+  .auth { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .auth-admin   { background: #450a0a; color: #fca5a5; }
+  .auth-monitor { background: #1c1917; color: #d6d3d1; }
+  .auth-auth    { background: var(--accent-dim); color: #93c5fd; }
+  .auth-apikey  { background: var(--cyan-dim); color: var(--cyan); }
+  .auth-public  { background: var(--green-dim); color: var(--green); }
+  .auth-cart    { background: var(--purple-dim); color: #d8b4fe; }
+
+  /* ENDPOINT CARD */
+  .endpoint { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; margin-bottom: 16px; overflow: hidden; }
+  .endpoint-header { display: flex; align-items: center; gap: 12px; padding: 14px 18px; cursor: pointer; user-select: none; }
+  .endpoint-header:hover { background: var(--bg3); }
+  .endpoint-path { font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 13px; color: var(--text); flex: 1; }
+  .endpoint-desc { font-size: 12px; color: var(--muted); margin-left: auto; white-space: nowrap; }
+  .endpoint-body { border-top: 1px solid var(--border); padding: 18px; display: none; }
+  .endpoint.open .endpoint-body { display: block; }
+
+  /* PARAMS TABLE */
+  .params-group { margin-bottom: 20px; }
+  .params-group h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 8px; font-weight: 700; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; border-bottom: 1px solid var(--border); color: var(--muted); font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: .06em; }
+  td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: top; }
+  tr:last-child td { border-bottom: none; }
+  .field-name { font-family: 'JetBrains Mono', monospace; color: var(--cyan); font-size: 12px; }
+  .field-type { font-family: 'JetBrains Mono', monospace; color: var(--purple); font-size: 12px; }
+  .field-req  { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 700; }
+  .req  { background: #450a0a; color: #fca5a5; }
+  .opt  { background: #1a2332; color: #64748b; }
+  .field-desc { color: var(--muted); font-size: 12px; }
+
+  /* CODE BLOCK */
+  pre { background: #090d14; border: 1px solid var(--border); border-radius: 6px; padding: 14px 16px; overflow-x: auto; font-family: 'JetBrains Mono', 'Fira Code', monospace; font-size: 12px; line-height: 1.7; color: #94a3b8; margin-top: 8px; }
+  pre .key   { color: var(--cyan); }
+  pre .str   { color: #86efac; }
+  pre .num   { color: #fdba74; }
+  pre .bool  { color: #a78bfa; }
+  pre .null  { color: var(--muted); }
+  pre .cmt   { color: #475569; font-style: italic; }
+
+  /* RESPONSE TABS */
+  .tabs { display: flex; gap: 2px; margin-bottom: 10px; }
+  .tab { padding: 5px 14px; border-radius: 4px; font-size: 12px; cursor: pointer; border: 1px solid var(--border); color: var(--muted); background: transparent; transition: all .15s; }
+  .tab.active { background: var(--bg3); color: var(--text); border-color: var(--accent); }
+
+  /* INTRO SECTION */
+  .intro-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .info-card { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 16px; }
+  .info-card h3 { font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: .08em; color: var(--muted); margin-bottom: 10px; }
+  .info-card p, .info-card li { font-size: 13px; color: var(--text); margin-bottom: 4px; }
+  .info-card ul { padding-left: 16px; }
+  .info-card code { font-family: monospace; background: var(--bg3); padding: 1px 5px; border-radius: 3px; font-size: 12px; color: var(--cyan); }
+
+  .enum-list { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+  .enum-val { font-family: monospace; font-size: 11px; background: var(--bg3); border: 1px solid var(--border); padding: 2px 7px; border-radius: 3px; color: var(--yellow); }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: transparent; }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+  /* STICKY HEADER WITHIN SECTION */
+  .section-anchor { display: block; position: relative; top: -20px; visibility: hidden; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="nav-logo">
+    <h1>SCP Mock API</h1>
+    <p>REST Reference — Backoffice</p>
+  </div>
+  <div class="nav-section">Général</div>
+  <a href="#intro">Introduction</a>
+  <a href="#auth-section">Authentification</a>
+  <a href="#errors-section">Erreurs & Formats</a>
+  <div class="nav-section">Endpoints</div>
+  <a href="#users"><span class="badge" style="background:#1d3a6e;color:#93c5fd;">6</span> Users</a>
+  <a href="#clients"><span class="badge" style="background:#14532d;color:#86efac;">3</span> Clients</a>
+  <a href="#stagiaires"><span class="badge" style="background:#14532d;color:#86efac;">3</span> Stagiaires</a>
+  <a href="#stages"><span class="badge" style="background:#451a03;color:#fcd34d;">7</span> Stages</a>
+  <a href="#reservations"><span class="badge" style="background:#3b0764;color:#d8b4fe;">5</span> Réservations</a>
+  <a href="#promocodes"><span class="badge" style="background:#1d3a6e;color:#93c5fd;">6</span> Promo Codes</a>
+  <a href="#cart"><span class="badge" style="background:#3b0764;color:#d8b4fe;">6</span> Cart</a>
+  <a href="#availability"><span class="badge" style="background:#14532d;color:#86efac;">5</span> Availability</a>
+  <a href="#orders"><span class="badge" style="background:#083344;color:#67e8f9;">8</span> Orders</a>
+  <a href="#payments"><span class="badge" style="background:#1d3a6e;color:#93c5fd;">1</span> Payments</a>
+  <a href="#dashboard"><span class="badge" style="background:#451a03;color:#fcd34d;">2</span> Dashboard</a>
+  <div class="nav-section">Référence</div>
+  <a href="#models">Modèles Prisma</a>
+  <a href="#enums">Enums</a>
+</nav>
+
+<main>
+
+<!-- ═══════════════════════════════════ INTRO ═══════════════════════════════════ -->
+<section id="intro">
+  <a class="section-anchor" id="intro-anchor"></a>
+  <h2>Introduction</h2>
+  <p class="section-desc">API REST construite avec <strong>Hono</strong> dans Next.js 15, base PostgreSQL via Prisma.</p>
+  <div class="intro-grid">
+    <div class="info-card">
+      <h3>Base URL</h3>
+      <p><code>/api</code></p>
+      <p style="margin-top:8px;color:var(--muted);font-size:12px;">Local : <code>http://localhost:3001/api</code></p>
+    </div>
+    <div class="info-card">
+      <h3>Format réponse</h3>
+      <p>Toutes les réponses suivent :</p>
+      <pre style="margin-top:8px;">{ "success": bool, "data": T | null, "message": string }</pre>
+    </div>
+    <div class="info-card">
+      <h3>Audiences</h3>
+      <ul>
+        <li><strong>Public (apps/front)</strong> — <code>x-api-key</code> + <code>x-session-id</code></li>
+        <li><strong>Admin dashboard</strong> — cookie de session better-auth</li>
+      </ul>
+    </div>
+    <div class="info-card">
+      <h3>CORS autorisé</h3>
+      <ul>
+        <li><code>http://localhost:3000</code></li>
+        <li><code>http://localhost:3001</code></li>
+        <li>+ domaines de production via env</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ AUTH ═══════════════════════════════════ -->
+<section id="auth-section">
+  <h2>Authentification</h2>
+  <p class="section-desc">Deux mécanismes coexistent selon l'appelant.</p>
+  <div class="intro-grid">
+    <div class="info-card">
+      <h3>Session Cookie (dashboard)</h3>
+      <p>Cookie HTTP-only posé par better-auth via <code>/api/auth/[...all]</code>.</p>
+      <p style="margin-top:8px;color:var(--muted);font-size:12px;">Niveaux : <code>requireAuth</code> → <code>requireMonitor</code> → <code>requireAdmin</code></p>
+    </div>
+    <div class="info-card">
+      <h3>API Key (front public)</h3>
+      <p>Header <code>x-api-key: &lt;clé&gt;</code></p>
+      <p style="margin-top:8px;color:var(--muted);font-size:12px;">Pour le panier, ajouter aussi <code>x-session-id: &lt;uuid&gt;</code> (TTL 24h)</p>
+    </div>
+  </div>
+  <div class="info-card" style="margin-top:12px;">
+    <h3>Middleware — hiérarchie</h3>
+    <table>
+      <tr><th>Middleware</th><th>Vérification</th></tr>
+      <tr><td class="field-name">requireAuth</td><td class="field-desc">Session better-auth valide (tout rôle)</td></tr>
+      <tr><td class="field-name">requireAdmin</td><td class="field-desc">Session + rôle ADMIN</td></tr>
+      <tr><td class="field-name">requireMonitor</td><td class="field-desc">Session + rôle MONITEUR ou ADMIN</td></tr>
+      <tr><td class="field-name">requireApiKey</td><td class="field-desc">Header <code>x-api-key</code> valide</td></tr>
+      <tr><td class="field-name">requireCartSession</td><td class="field-desc">Header <code>x-session-id</code> (crée session si inexistante)</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ ERRORS ═══════════════════════════════════ -->
+<section id="errors-section">
+  <h2>Erreurs & Codes HTTP</h2>
+  <p class="section-desc">Format d'erreur standard.</p>
+  <div class="info-card">
+    <table>
+      <tr><th>Code</th><th>Cas</th></tr>
+      <tr><td><span style="color:var(--green);">200</span></td><td class="field-desc">Succès (GET, PATCH, PUT)</td></tr>
+      <tr><td><span style="color:var(--green);">201</span></td><td class="field-desc">Création réussie (POST)</td></tr>
+      <tr><td><span style="color:var(--yellow);">400</span></td><td class="field-desc">Validation Zod échouée — body retourne les erreurs de champ</td></tr>
+      <tr><td><span style="color:var(--yellow);">401</span></td><td class="field-desc">Non authentifié</td></tr>
+      <tr><td><span style="color:var(--yellow);">403</span></td><td class="field-desc">Rôle insuffisant</td></tr>
+      <tr><td><span style="color:var(--yellow);">404</span></td><td class="field-desc">Ressource introuvable (Prisma P2025)</td></tr>
+      <tr><td><span style="color:var(--red);">409</span></td><td class="field-desc">Conflit — contrainte unique (Prisma P2002)</td></tr>
+      <tr><td><span style="color:var(--red);">500</span></td><td class="field-desc">Erreur serveur interne</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ USERS ═══════════════════════════════════ -->
+<section id="users">
+  <h2><span class="section-icon">👤</span> Users <code style="font-size:14px;color:var(--muted);">/api/users</code></h2>
+  <p class="section-desc">Gestion des comptes utilisateurs du backoffice (admins, moniteurs).</p>
+
+  <!-- GET /users -->
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/users</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Liste tous les utilisateurs</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Paramètres</h4>
+        <p style="color:var(--muted);font-size:12px;">Aucun paramètre.</p>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre><span class="cmt">// User[]</span>
+{
+  <span class="key">"success"</span>: <span class="bool">true</span>,
+  <span class="key">"data"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="str">"cuid..."</span>,
+      <span class="key">"email"</span>: <span class="str">"user@example.com"</span>,
+      <span class="key">"name"</span>: <span class="str">"Jean Dupont"</span>,
+      <span class="key">"emailVerified"</span>: <span class="bool">true</span>,
+      <span class="key">"image"</span>: <span class="null">null</span>,
+      <span class="key">"avatarUrl"</span>: <span class="null">null</span>,
+      <span class="key">"role"</span>: <span class="str">"ADMIN"</span>,
+      <span class="key">"createdAt"</span>: <span class="str">"2025-01-01T00:00:00.000Z"</span>,
+      <span class="key">"updatedAt"</span>: <span class="str">"2025-01-01T00:00:00.000Z"</span>
+    }
+  ]
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- GET /users/:id -->
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/users/:id</span>
+      <span class="auth auth-auth">requireAuth</span>
+      <span class="endpoint-desc">Utilisateur par ID</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Path params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">id</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">ID de l'utilisateur</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"data"</span>: <span class="cmt">/* User | null */</span> }</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- GET /users/by-role/:role -->
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/users/by-role/:role</span>
+      <span class="auth" style="background:#1c1917;color:#d6d3d1;">requireMonitor</span>
+      <span class="endpoint-desc">Utilisateurs par rôle</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Path params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">role</td><td class="field-type">enum</td><td><span class="field-req req">requis</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">ADMIN</span><span class="enum-val">MONITEUR</span><span class="enum-val">CUSTOMER</span></div></td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"data"</span>: <span class="cmt">/* User[] */</span> }</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- POST /users -->
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/users</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Créer un compte utilisateur</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">name</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">min 2 chars</td></tr>
+          <tr><td class="field-name">email</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">format email valide</td></tr>
+          <tr><td class="field-name">password</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">min 6 chars — hashé en bcrypt</td></tr>
+          <tr><td class="field-name">role</td><td class="field-type">enum</td><td><span class="field-req req">requis</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">ADMIN</span><span class="enum-val">MONITEUR</span><span class="enum-val">CUSTOMER</span></div></td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"message"</span>: <span class="str">"Compte de ... créé avec succès"</span>, <span class="key">"data"</span>: <span class="cmt">/* User */</span> }</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- PATCH /users/:id/role -->
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method PATCH">PATCH</span>
+      <span class="endpoint-path">/users/:id/role</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Changer le rôle</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Path params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">id</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">ID de l'utilisateur</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">role</td><td class="field-type">enum</td><td><span class="field-req req">requis</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">ADMIN</span><span class="enum-val">MONITEUR</span><span class="enum-val">CUSTOMER</span></div></td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"message"</span>: <span class="str">"Role updated"</span>, <span class="key">"data"</span>: <span class="cmt">/* User */</span> }</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- PATCH /users/:id/name -->
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method PATCH">PATCH</span>
+      <span class="endpoint-path">/users/:id/name</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Mettre à jour le nom</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Path params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">id</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">ID de l'utilisateur</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">name</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">min 2 chars</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"message"</span>: <span class="str">"Nom mis à jour"</span>, <span class="key">"data"</span>: <span class="cmt">/* User */</span> }</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ CLIENTS ═══════════════════════════════════ -->
+<section id="clients">
+  <h2><span class="section-icon">🧑‍💼</span> Clients <code style="font-size:14px;color:var(--muted);">/api/clients</code></h2>
+  <p class="section-desc">Personnes ayant passé commande (données de facturation).</p>
+
+  <!-- GET /clients -->
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/clients</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Liste paginée</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Query params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">page</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Défaut : 1</td></tr>
+          <tr><td class="field-name">pageSize</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Défaut : 25</td></tr>
+          <tr><td class="field-name">nopaging</td><td class="field-type">boolean</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc"><code>true</code> = retourne tout sans pagination</td></tr>
+          <tr><td class="field-name">search</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Recherche sur firstName, lastName, email, phone, city, id</td></tr>
+          <tr><td class="field-name">sortBy</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">orders</span><span class="enum-val">createdAt</span><span class="enum-val">name</span></div></td></tr>
+          <tr><td class="field-name">sortOrder</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">asc</span><span class="enum-val">desc</span></div></td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{
+  <span class="key">"success"</span>: <span class="bool">true</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"clients"</span>: [ <span class="cmt">/* Client[] */</span> ],
+    <span class="key">"totalCount"</span>: <span class="num">142</span>,
+    <span class="key">"page"</span>: <span class="num">1</span>,
+    <span class="key">"pageSize"</span>: <span class="num">25</span>
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- GET /clients/:id -->
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/clients/:id</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Client détaillé</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Path params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">id</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">ID du client</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200 — inclut</h4>
+        <p style="font-size:12px;color:var(--muted);">orders, orderItems, stages (relations complètes)</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- POST /clients -->
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/clients</span>
+      <span class="auth auth-apikey">requireApiKey</span>
+      <span class="endpoint-desc">Créer un client</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">firstName</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">min 1 char</td></tr>
+          <tr><td class="field-name">lastName</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">min 1 char</td></tr>
+          <tr><td class="field-name">email</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">format email ou chaîne vide</td></tr>
+          <tr><td class="field-name">phone</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">min 5 chars</td></tr>
+          <tr><td class="field-name">address</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc"></td></tr>
+          <tr><td class="field-name">postalCode</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc"></td></tr>
+          <tr><td class="field-name">city</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc"></td></tr>
+          <tr><td class="field-name">country</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc"></td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 201</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"message"</span>: <span class="str">"Client created"</span>, <span class="key">"data"</span>: <span class="cmt">/* Client */</span> }</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ STAGIAIRES ═══════════════════════════════════ -->
+<section id="stagiaires">
+  <h2><span class="section-icon">🪂</span> Stagiaires <code style="font-size:14px;color:var(--muted);">/api/stagiaires</code></h2>
+  <p class="section-desc">Participants aux stages (données physiques + contact).</p>
+
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/stagiaires</span>
+      <span class="auth" style="background:#1c1917;color:#d6d3d1;">requireMonitor</span>
+      <span class="endpoint-desc">Liste paginée</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Query params (mêmes que /clients)</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">page</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Défaut : 1</td></tr>
+          <tr><td class="field-name">pageSize</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Défaut : 25</td></tr>
+          <tr><td class="field-name">nopaging</td><td class="field-type">boolean</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Retourne tout</td></tr>
+          <tr><td class="field-name">search</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">firstName, lastName, email, phone</td></tr>
+          <tr><td class="field-name">sortBy</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">name</span><span class="enum-val">createdAt</span></div></td></tr>
+          <tr><td class="field-name">sortOrder</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">asc</span><span class="enum-val">desc</span></div></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/stagiaires/:id</span>
+      <span class="auth" style="background:#1c1917;color:#d6d3d1;">requireMonitor</span>
+      <span class="endpoint-desc">Stagiaire avec réservations</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Inclut : stageBookings avec détails du stage.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/stagiaires</span>
+      <span class="auth auth-apikey">requireApiKey</span>
+      <span class="endpoint-desc">Créer un stagiaire</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">firstName</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">min 1 char</td></tr>
+          <tr><td class="field-name">lastName</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">min 1 char</td></tr>
+          <tr><td class="field-name">email</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">format email valide</td></tr>
+          <tr><td class="field-name">phone</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">min 5 chars</td></tr>
+          <tr><td class="field-name">birthDate</td><td class="field-type">date</td><td><span class="field-req req">requis</span></td><td class="field-desc">ISO string — âge minimum requis</td></tr>
+          <tr><td class="field-name">height</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Taille en cm, min 1</td></tr>
+          <tr><td class="field-name">weight</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Poids en kg, min 1</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ STAGES ═══════════════════════════════════ -->
+<section id="stages">
+  <h2><span class="section-icon">🏔</span> Stages <code style="font-size:14px;color:var(--muted);">/api/stages</code></h2>
+  <p class="section-desc">Gestion des sessions de vol (création, planification, promotions).</p>
+
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/stages</span>
+      <span class="auth auth-apikey">requireApiKey</span>
+      <span class="endpoint-desc">Tous les stages (public)</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{
+  <span class="key">"success"</span>: <span class="bool">true</span>,
+  <span class="key">"data"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="str">"..."</span>,
+      <span class="key">"startDate"</span>: <span class="str">"2026-07-01T00:00:00.000Z"</span>,
+      <span class="key">"duration"</span>: <span class="num">5</span>,          <span class="cmt">// jours</span>
+      <span class="key">"places"</span>: <span class="num">8</span>,
+      <span class="key">"price"</span>: <span class="num">890</span>,
+      <span class="key">"acomptePrice"</span>: <span class="num">200</span>,
+      <span class="key">"type"</span>: <span class="str">"INITIATION"</span>,
+      <span class="key">"promotionOriginalPrice"</span>: <span class="null">null</span>,
+      <span class="key">"promotionEndDate"</span>: <span class="null">null</span>,
+      <span class="key">"promotionReason"</span>: <span class="null">null</span>,
+      <span class="key">"moniteurs"</span>: [ <span class="cmt">/* User[] */</span> ],
+      <span class="key">"_count"</span>: { <span class="key">"bookings"</span>: <span class="num">3</span> }
+    }
+  ]
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/stages/:id</span>
+      <span class="auth auth-auth">requireAuth</span>
+      <span class="endpoint-desc">Stage détaillé</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Inclut : moniteurs, bookings, stagiaires, orderItems.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/stages</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Créer un stage</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">startDate</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">Date ISO valide</td></tr>
+          <tr><td class="field-name">duration</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Entier ≥ 1 (jours)</td></tr>
+          <tr><td class="field-name">places</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Entier ≥ 1</td></tr>
+          <tr><td class="field-name">moniteurIds</td><td class="field-type">string[]</td><td><span class="field-req req">requis</span></td><td class="field-desc">Au moins 1 ID de moniteur</td></tr>
+          <tr><td class="field-name">price</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Prix total ≥ 0</td></tr>
+          <tr><td class="field-name">acomptePrice</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Montant acompte ≥ 0</td></tr>
+          <tr><td class="field-name">type</td><td class="field-type">enum</td><td><span class="field-req req">requis</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">INITIATION</span><span class="enum-val">PROGRESSION</span><span class="enum-val">AUTONOMIE</span><span class="enum-val">DOUBLE</span></div></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method PUT">PUT</span>
+      <span class="endpoint-path">/stages/:id</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Modifier un stage</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Mêmes champs que POST /stages. Remplace complètement le stage.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method PATCH">PATCH</span>
+      <span class="endpoint-path">/stages/:id/promote</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Appliquer une promotion</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">newPrice</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Nouveau prix ≥ 0 (l'ancien est sauvegardé)</td></tr>
+          <tr><td class="field-name">endDate</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Date fin de promo (ISO)</td></tr>
+          <tr><td class="field-name">reason</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Libellé de la promo</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method DELETE">DELETE</span>
+      <span class="endpoint-path">/stages/:id/promote</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Retirer la promotion</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Restaure le prix original sauvegardé. Aucun body requis.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method DELETE">DELETE</span>
+      <span class="endpoint-path">/stages/:id</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Supprimer un stage</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Suppression définitive. Aucun body requis.</p>
+      <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"message"</span>: <span class="str">"Stage deleted"</span> }</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ RESERVATIONS ═══════════════════════════════════ -->
+<section id="reservations">
+  <h2><span class="section-icon">📋</span> Réservations <code style="font-size:14px;color:var(--muted);">/api/reservations</code></h2>
+  <p class="section-desc">Gestion des réservations de stage, paiements manuels et annulation.</p>
+
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/reservations</span>
+      <span class="auth" style="background:#1c1917;color:#d6d3d1;">requireMonitor</span>
+      <span class="endpoint-desc">Liste paginée + filtres</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Query params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">page</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Défaut : "1"</td></tr>
+          <tr><td class="field-name">limit</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Défaut : "20"</td></tr>
+          <tr><td class="field-name">search</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Recherche textuelle</td></tr>
+          <tr><td class="field-name">bookingStatus</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">ALL</span><span class="enum-val">CONFIRMED</span><span class="enum-val">CANCELLED</span></div> Défaut : ALL</td></tr>
+          <tr><td class="field-name">startDate</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">ISO date — date min du stage</td></tr>
+          <tr><td class="field-name">endDate</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">ISO date — date max du stage</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"data"</span>: { <span class="key">"reservations"</span>: [...], <span class="key">"total"</span>: <span class="num">84</span>, <span class="key">"page"</span>: <span class="num">1</span>, <span class="key">"limit"</span>: <span class="num">20</span> } }</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/reservations/:id</span>
+      <span class="auth" style="background:#1c1917;color:#d6d3d1;">requireMonitor</span>
+      <span class="endpoint-desc">Réservation détaillée</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Inclut : orderItems, payments, stage, stagiaire, client.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/reservations</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Créer une réservation (admin)</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">stagiaireId</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">ID du stagiaire</td></tr>
+          <tr><td class="field-name">stageId</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">ID du stage</td></tr>
+          <tr><td class="field-name">type</td><td class="field-type">enum</td><td><span class="field-req req">requis</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">INITIATION</span><span class="enum-val">PROGRESSION</span><span class="enum-val">AUTONOMIE</span></div></td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 201</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"message"</span>: <span class="str">"Reservation created"</span>, <span class="key">"data"</span>: <span class="cmt">/* StageBooking */</span> }</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/reservations/manual-payment</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Enregistrer un paiement manuel</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">orderItemId</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">ID de l'item de commande</td></tr>
+          <tr><td class="field-name">amount</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Montant positif en €</td></tr>
+          <tr><td class="field-name">paymentMethod</td><td class="field-type">enum</td><td><span class="field-req req">requis</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">CARD</span><span class="enum-val">BANK_TRANSFER</span><span class="enum-val">CASH</span><span class="enum-val">CHECK</span></div></td></tr>
+          <tr><td class="field-name">note</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Note interne</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method DELETE">DELETE</span>
+      <span class="endpoint-path">/reservations/:id</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Annuler une réservation</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Path params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">id</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">ID de la réservation (StageBooking)</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"message"</span>: <span class="str">"Reservation cancelled"</span> }</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════ PROMOCODES ═══════════════════════════════════ -->
+<section id="promocodes">
+  <h2><span class="section-icon">🏷</span> Promo Codes <code style="font-size:14px;color:var(--muted);">/api/promocodes</code></h2>
+  <p class="section-desc">Codes de réduction : montant fixe ou pourcentage, avec règles d'application.</p>
+
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/promocodes</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Tous les codes</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Inclut : nombre d'usages, détails des commandes associées.</p>
+      <pre>{
+  <span class="key">"success"</span>: <span class="bool">true</span>,
+  <span class="key">"data"</span>: [
+    {
+      <span class="key">"id"</span>: <span class="str">"..."</span>,
+      <span class="key">"code"</span>: <span class="str">"ETE2026"</span>,
+      <span class="key">"label"</span>: <span class="str">"Offre été"</span>,
+      <span class="key">"discountType"</span>: <span class="str">"PERCENTAGE"</span>,
+      <span class="key">"discountValue"</span>: <span class="num">10</span>,
+      <span class="key">"maxDiscountAmount"</span>: <span class="num">50</span>,
+      <span class="key">"minCartAmount"</span>: <span class="num">200</span>,
+      <span class="key">"maxUses"</span>: <span class="num">100</span>,
+      <span class="key">"currentUses"</span>: <span class="num">12</span>,
+      <span class="key">"expiryDate"</span>: <span class="str">"2026-09-01T00:00:00.000Z"</span>,
+      <span class="key">"isActive"</span>: <span class="bool">true</span>,
+      <span class="key">"applicableProductTypes"</span>: [<span class="str">"STAGE"</span>]
+    }
+  ]
+}</pre>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/promocodes/:id</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Code détaillé avec usages</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Inclut tous les usages avec détail commande et client.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/promocodes</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Créer un code promo</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">code</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">1–50 chars, converti en majuscules automatiquement</td></tr>
+          <tr><td class="field-name">label</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Nom affiché</td></tr>
+          <tr><td class="field-name">recipientNote</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Message pour le destinataire</td></tr>
+          <tr><td class="field-name">discountType</td><td class="field-type">enum</td><td><span class="field-req req">requis</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">FIXED</span><span class="enum-val">PERCENTAGE</span></div></td></tr>
+          <tr><td class="field-name">discountValue</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">≥ 0.01 — montant en € ou % selon type</td></tr>
+          <tr><td class="field-name">maxDiscountAmount</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Plafond de remise (utile pour PERCENTAGE)</td></tr>
+          <tr><td class="field-name">minCartAmount</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Panier minimum pour activer le code</td></tr>
+          <tr><td class="field-name">maxUses</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Nombre max d'utilisations (entier ≥ 1)</td></tr>
+          <tr><td class="field-name">expiryDate</td><td class="field-type">date</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Date d'expiration</td></tr>
+          <tr><td class="field-name">isActive</td><td class="field-type">boolean</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Défaut : true</td></tr>
+          <tr><td class="field-name">applicableProductTypes</td><td class="field-type">string[]</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Types de produits concernés. Vide = tous.</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/promocodes/validate</span>
+      <span class="auth auth-public">public</span>
+      <span class="endpoint-desc">Valider un code (front)</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">code</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">Code à valider</td></tr>
+          <tr><td class="field-name">cartTotal</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Total du panier ≥ 0</td></tr>
+          <tr><td class="field-name">cartSubtotal</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Sous-total (hors acompte) — utilisé pour minCartAmount</td></tr>
+          <tr><td class="field-name">cartItems</td><td class="field-type">array</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Items pour filtrage par <code>applicableProductTypes</code></td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>cartItems — structure</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">type</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">Type du produit (ex: STAGE)</td></tr>
+          <tr><td class="field-name">amount</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Montant de l'item</td></tr>
+          <tr><td class="field-name">isGiftVoucherCovered</td><td class="field-type">boolean</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Si déjà couvert par un bon cadeau</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{
+  <span class="key">"success"</span>: <span class="bool">true</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"promoCode"</span>: <span class="cmt">/* PromoCode */</span>,
+    <span class="key">"discountAmount"</span>: <span class="num">45.00</span>,
+    <span class="key">"cartTotalAfterDiscount"</span>: <span class="num">845.00</span>
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method PUT">PUT</span>
+      <span class="endpoint-path">/promocodes/:id</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Modifier un code promo</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Mêmes champs que POST /promocodes (tous optionnels en PUT).</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method DELETE">DELETE</span>
+      <span class="endpoint-path">/promocodes/:id</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Supprimer un code</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Échoue si le code a déjà été utilisé (currentUses > 0).</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ CART ═══════════════════════════════════ -->
+<section id="cart">
+  <h2><span class="section-icon">🛒</span> Cart <code style="font-size:14px;color:var(--muted);">/api/cart</code></h2>
+  <p class="section-desc">Panier côté front. Nécessite <code>x-api-key</code> + <code>x-session-id</code>. Les items expirent après 1h.</p>
+
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/cart/items</span>
+      <span class="auth auth-cart">requireApiKey + Cart</span>
+      <span class="endpoint-desc">Contenu du panier</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Headers requis</h4>
+        <table><tr><th>Header</th><th>Description</th></tr>
+          <tr><td class="field-name">x-api-key</td><td class="field-desc">Clé API valide</td></tr>
+          <tr><td class="field-name">x-session-id</td><td class="field-desc">UUID de session panier (TTL 24h)</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{
+  <span class="key">"success"</span>: <span class="bool">true</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"items"</span>: [
+      {
+        <span class="key">"id"</span>: <span class="str">"..."</span>,
+        <span class="key">"type"</span>: <span class="str">"STAGE"</span>,
+        <span class="key">"itemId"</span>: <span class="str">"stageId..."</span>,
+        <span class="key">"quantity"</span>: <span class="num">1</span>,
+        <span class="key">"participantData"</span>: { <span class="cmt">/* voir POST /cart/items */</span> },
+        <span class="key">"expiresAt"</span>: <span class="str">"2026-05-23T15:00:00.000Z"</span>
+      }
+    ],
+    <span class="key">"totalAmount"</span>: <span class="num">890</span>,
+    <span class="key">"itemCount"</span>: <span class="num">1</span>
+  }
+}</pre>
+        <p style="margin-top:8px;font-size:11px;color:var(--muted);">Les items expirés sont automatiquement supprimés lors du GET.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/cart/items</span>
+      <span class="auth auth-cart">requireApiKey + Cart</span>
+      <span class="endpoint-desc">Ajouter au panier</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">type</td><td class="field-type">literal</td><td><span class="field-req req">requis</span></td><td class="field-desc"><span class="enum-val">STAGE</span> (seul type supporté)</td></tr>
+          <tr><td class="field-name">itemId</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">ID du stage</td></tr>
+          <tr><td class="field-name">quantity</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Défaut : 1</td></tr>
+          <tr><td class="field-name">participantData</td><td class="field-type">object</td><td><span class="field-req req">requis</span></td><td class="field-desc">Tous les champs ci-dessous requis</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>participantData — champs</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">firstName</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc"></td></tr>
+          <tr><td class="field-name">lastName</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc"></td></tr>
+          <tr><td class="field-name">email</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">format email</td></tr>
+          <tr><td class="field-name">phone</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc"></td></tr>
+          <tr><td class="field-name">weight</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Poids kg (20–120)</td></tr>
+          <tr><td class="field-name">height</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Taille cm (120–220)</td></tr>
+          <tr><td class="field-name">birthDate</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">ISO date</td></tr>
+          <tr><td class="field-name">selectedStageType</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Type de stage sélectionné</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method PATCH">PATCH</span>
+      <span class="endpoint-path">/cart/items/:id</span>
+      <span class="auth auth-cart">requireApiKey + Cart</span>
+      <span class="endpoint-desc">Modifier un item (avec validation)</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON) — tous optionnels</h4>
+        <table><tr><th>Champ</th><th>Type</th><th>Description</th></tr>
+          <tr><td class="field-name">quantity</td><td class="field-type">number</td><td class="field-desc">Nouvelle quantité</td></tr>
+          <tr><td class="field-name">participantData.firstName</td><td class="field-type">string</td><td class="field-desc">min 1 char</td></tr>
+          <tr><td class="field-name">participantData.lastName</td><td class="field-type">string</td><td class="field-desc">min 1 char</td></tr>
+          <tr><td class="field-name">participantData.email</td><td class="field-type">string</td><td class="field-desc">format email</td></tr>
+          <tr><td class="field-name">participantData.phone</td><td class="field-type">string</td><td class="field-desc">min 10 chars</td></tr>
+          <tr><td class="field-name">participantData.weight</td><td class="field-type">number</td><td class="field-desc">20–120 kg</td></tr>
+          <tr><td class="field-name">participantData.height</td><td class="field-type">number</td><td class="field-desc">120–220 cm</td></tr>
+          <tr><td class="field-name">participantData.birthDate</td><td class="field-type">string</td><td class="field-desc">ISO date</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"data"</span>: { <span class="key">"item"</span>: <span class="cmt">/* CartItem */</span>, <span class="key">"cart"</span>: <span class="cmt">/* { items, totalAmount, itemCount } */</span> } }</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method PUT">PUT</span>
+      <span class="endpoint-path">/cart/items/:id</span>
+      <span class="auth auth-cart">requireApiKey + Cart</span>
+      <span class="endpoint-desc">Remplacer un item</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Même schema que PATCH. Remplace l'item entièrement.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method DELETE">DELETE</span>
+      <span class="endpoint-path">/cart/items/:id</span>
+      <span class="auth auth-cart">requireApiKey + Cart</span>
+      <span class="endpoint-desc">Supprimer un item</span>
+    </div>
+    <div class="endpoint-body">
+      <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"message"</span>: <span class="str">"Item removed"</span> }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method DELETE">DELETE</span>
+      <span class="endpoint-path">/cart/items</span>
+      <span class="auth auth-cart">requireApiKey + Cart</span>
+      <span class="endpoint-desc">Vider le panier</span>
+    </div>
+    <div class="endpoint-body">
+      <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"message"</span>: <span class="str">"Cart cleared"</span> }</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ AVAILABILITY ═══════════════════════════════════ -->
+<section id="availability">
+  <h2><span class="section-icon">📅</span> Availability <code style="font-size:14px;color:var(--muted);">/api/availability</code></h2>
+  <p class="section-desc">Vérification des disponibilités des stages avant ajout au panier.</p>
+
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/availability/check</span>
+      <span class="auth auth-apikey">requireApiKey</span>
+      <span class="endpoint-desc">Vérifier un stage</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">type</td><td class="field-type">literal</td><td><span class="field-req req">requis</span></td><td class="field-desc"><span class="enum-val">stage</span></td></tr>
+          <tr><td class="field-name">itemId</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">ID du stage</td></tr>
+          <tr><td class="field-name">quantity</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Défaut : 1</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"data"</span>: { <span class="key">"available"</span>: <span class="bool">true</span>, <span class="key">"reason"</span>: <span class="null">null</span>, <span class="key">"slots"</span>: <span class="num">5</span> } }</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/availability/check-batch</span>
+      <span class="auth auth-apikey">requireApiKey</span>
+      <span class="endpoint-desc">Vérifier plusieurs stages</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <pre>{ <span class="key">"items"</span>: [{ <span class="key">"type"</span>: <span class="str">"stage"</span>, <span class="key">"itemId"</span>: <span class="str">"..."</span> }] }</pre>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"data"</span>: [{ <span class="key">"itemId"</span>: <span class="str">"..."</span>, <span class="key">"available"</span>: <span class="bool">true</span>, <span class="key">"slots"</span>: <span class="num">3</span> }] }</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/availability/stages/:id</span>
+      <span class="auth auth-apikey">requireApiKey</span>
+      <span class="endpoint-desc">Dispo d'un stage par ID</span>
+    </div>
+    <div class="endpoint-body">
+      <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"data"</span>: { <span class="key">"stageId"</span>: <span class="str">"..."</span>, <span class="key">"available"</span>: <span class="bool">true</span>, <span class="key">"reason"</span>: <span class="null">null</span>, <span class="key">"slots"</span>: <span class="num">4</span> } }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/availability/months</span>
+      <span class="auth auth-apikey">requireApiKey</span>
+      <span class="endpoint-desc">Mois disponibles pour une année</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Query params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">year</td><td class="field-type">number</td><td><span class="field-req req">requis</span></td><td class="field-desc">Ex : 2026</td></tr>
+          <tr><td class="field-name">stageType</td><td class="field-type">enum</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">INITIATION</span><span class="enum-val">PROGRESSION</span><span class="enum-val">AUTONOMIE</span><span class="enum-val">DOUBLE</span></div></td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"data"</span>: { <span class="key">"availableMonths"</span>: [<span class="num">6</span>,<span class="num">7</span>,<span class="num">8</span>], <span class="key">"year"</span>: <span class="num">2026</span>, <span class="key">"stageType"</span>: <span class="str">"INITIATION"</span> } }</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/availability/periods</span>
+      <span class="auth auth-apikey">requireApiKey</span>
+      <span class="endpoint-desc">Périodes disponibles</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Query params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">stageType</td><td class="field-type">enum</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Filtre par type de stage</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"data"</span>: [{ <span class="key">"startDate"</span>: <span class="str">"..."</span>, <span class="key">"endDate"</span>: <span class="str">"..."</span>, <span class="key">"stageCount"</span>: <span class="num">3</span> }] }</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ ORDERS ═══════════════════════════════════ -->
+<section id="orders">
+  <h2><span class="section-icon">📦</span> Orders <code style="font-size:14px;color:var(--muted);">/api/orders</code></h2>
+  <p class="section-desc">Création de commandes depuis le panier, suivi des statuts et finalisation.</p>
+
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/orders</span>
+      <span class="auth auth-cart">requireApiKey + Cart</span>
+      <span class="endpoint-desc">Créer une commande depuis le panier</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">customerEmail</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td><td class="field-desc">Email client — lie ou crée le client</td></tr>
+          <tr><td class="field-name">customerData</td><td class="field-type">object</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Données de facturation (requis si nouveau client)</td></tr>
+          <tr><td class="field-name">promoCodeId</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">ID du code promo validé</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>customerData — champs</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th></tr>
+          <tr><td class="field-name">firstName</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td></tr>
+          <tr><td class="field-name">lastName</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td></tr>
+          <tr><td class="field-name">phone</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td></tr>
+          <tr><td class="field-name">address</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td></tr>
+          <tr><td class="field-name">postalCode</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td></tr>
+          <tr><td class="field-name">city</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td></tr>
+          <tr><td class="field-name">country</td><td class="field-type">string</td><td><span class="field-req req">requis</span></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/orders</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Liste paginée des commandes</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Query params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">page</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Défaut : 1</td></tr>
+          <tr><td class="field-name">pageSize</td><td class="field-type">number</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Défaut : 25</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"data"</span>: { <span class="key">"orders"</span>: [...], <span class="key">"total"</span>: <span class="num">340</span> } }</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/orders/search</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Recherche de commandes</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Query params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">query</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Recherche par numéro, email, nom client</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/orders/:id</span>
+      <span class="auth auth-apikey">requireApiKey</span>
+      <span class="endpoint-desc">Commande publique (confirmation)</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Vue limitée pour la page de confirmation de commande côté front.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/orders/:id/details</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Commande complète (admin)</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Inclut : client, orderItems, payments, allocations, promoCode, stagiaires, stages.</p>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method PATCH">PATCH</span>
+      <span class="endpoint-path">/orders/:id/status</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Changer le statut</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">status</td><td class="field-type">enum</td><td><span class="field-req req">requis</span></td><td class="field-desc"><div class="enum-list"><span class="enum-val">PENDING</span><span class="enum-val">PAID</span><span class="enum-val">PARTIALLY_PAID</span><span class="enum-val">FULLY_PAID</span><span class="enum-val">CONFIRMED</span><span class="enum-val">CANCELLED</span><span class="enum-val">REFUNDED</span></div></td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method DELETE">DELETE</span>
+      <span class="endpoint-path">/orders/ghost</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Supprimer les commandes fantômes</span>
+    </div>
+    <div class="endpoint-body">
+      <p style="font-size:12px;color:var(--muted);">Supprime les commandes en statut PENDING créées mais jamais payées.</p>
+      <pre>{ <span class="key">"success"</span>: <span class="bool">true</span>, <span class="key">"message"</span>: <span class="str">"Ghost orders deleted"</span>, <span class="key">"deletedCount"</span>: <span class="num">7</span> }</pre>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method POST">POST</span>
+      <span class="endpoint-path">/orders/items/:orderItemId/finalize</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Finaliser un item de commande</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Body (JSON)</h4>
+        <table><tr><th>Champ</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">note</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Note de finalisation</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ PAYMENTS ═══════════════════════════════════ -->
+<section id="payments">
+  <h2><span class="section-icon">💳</span> Payments <code style="font-size:14px;color:var(--muted);">/api/payments</code></h2>
+  <p class="section-desc">Historique de tous les paiements (Stripe + manuels).</p>
+
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/payments</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">Tous les paiements</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Réponse 200 — chaque paiement inclut</h4>
+        <pre>{
+  <span class="key">"id"</span>: <span class="str">"..."</span>,
+  <span class="key">"orderId"</span>: <span class="str">"..."</span>,
+  <span class="key">"amount"</span>: <span class="num">200.00</span>,
+  <span class="key">"status"</span>: <span class="str">"SUCCEEDED"</span>,
+  <span class="key">"type"</span>: <span class="str">"MANUAL"</span>,        <span class="cmt">// STRIPE | MANUAL</span>
+  <span class="key">"paymentMethod"</span>: <span class="str">"CASH"</span>,  <span class="cmt">// si MANUAL : CARD | BANK_TRANSFER | CASH | CHECK</span>
+  <span class="key">"recordedByUserId"</span>: <span class="str">"..."</span>,
+  <span class="key">"order"</span>: { <span class="cmt">/* Order avec client */</span> },
+  <span class="key">"recordedByUser"</span>: { <span class="cmt">/* User */</span> },
+  <span class="key">"allocations"</span>: [ <span class="cmt">/* PaymentAllocation[] — lien vers OrderItems */</span> ],
+  <span class="key">"createdAt"</span>: <span class="str">"2026-05-20T10:00:00.000Z"</span>
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ DASHBOARD ═══════════════════════════════════ -->
+<section id="dashboard">
+  <h2><span class="section-icon">📊</span> Dashboard <code style="font-size:14px;color:var(--muted);">/api/dashboard</code></h2>
+  <p class="section-desc">KPIs annuels avec graphique d'évolution du CA, et récap mensuel navigable.</p>
+
+  <div class="endpoint open">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/dashboard/annual</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">KPIs annuels + graphique 13 mois</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Paramètres</h4>
+        <p style="color:var(--muted);font-size:12px;">Aucun paramètre. Calcule sur l'année civile en cours.</p>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{
+  <span class="key">"success"</span>: <span class="bool">true</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"annualStats"</span>: {
+      <span class="key">"year"</span>: <span class="num">2026</span>,
+      <span class="key">"totalCA"</span>: <span class="num">145600</span>,
+      <span class="key">"totalCollected"</span>: <span class="num">112300</span>,
+      <span class="key">"totalPending"</span>: <span class="num">33300</span>,
+      <span class="key">"onlineCollected"</span>: <span class="num">89000</span>,
+      <span class="key">"manualCollected"</span>: <span class="num">23300</span>,
+      <span class="key">"depositsPaid"</span>: <span class="num">67200</span>,
+      <span class="key">"balancesPaid"</span>: <span class="num">45100</span>,
+      <span class="key">"totalReservations"</span>: <span class="num">198</span>,
+      <span class="key">"uniqueStagiaires"</span>: <span class="num">174</span>
+    },
+    <span class="key">"chart"</span>: {
+      <span class="key">"byMonth"</span>: [
+        {
+          <span class="key">"month"</span>: <span class="str">"2026-05"</span>,
+          <span class="key">"monthLabel"</span>: <span class="str">"mai 26"</span>,
+          <span class="key">"total"</span>: <span class="num">12400</span>,
+          <span class="key">"online"</span>: <span class="num">9800</span>,
+          <span class="key">"manual"</span>: <span class="num">2600</span>,
+          <span class="key">"pendingBalance"</span>: <span class="num">3200</span>
+        }
+        <span class="cmt">// ... 13 mois glissants</span>
+      ]
+    }
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+
+  <div class="endpoint">
+    <div class="endpoint-header" onclick="this.parentElement.classList.toggle('open')">
+      <span class="method GET">GET</span>
+      <span class="endpoint-path">/dashboard/monthly</span>
+      <span class="auth auth-admin">requireAdmin</span>
+      <span class="endpoint-desc">KPIs d'un mois précis</span>
+    </div>
+    <div class="endpoint-body">
+      <div class="params-group">
+        <h4>Query params</h4>
+        <table><tr><th>Param</th><th>Type</th><th></th><th>Description</th></tr>
+          <tr><td class="field-name">month</td><td class="field-type">string</td><td><span class="field-req opt">optionnel</span></td><td class="field-desc">Format <code>YYYY-MM</code>. Défaut : mois courant</td></tr>
+        </table>
+      </div>
+      <div class="params-group">
+        <h4>Réponse 200</h4>
+        <pre>{
+  <span class="key">"success"</span>: <span class="bool">true</span>,
+  <span class="key">"data"</span>: {
+    <span class="key">"selectedMonthStats"</span>: {
+      <span class="key">"year"</span>: <span class="num">2026</span>,
+      <span class="key">"month"</span>: <span class="num">5</span>,
+      <span class="key">"totalCA"</span>: <span class="num">12400</span>,
+      <span class="key">"totalCollected"</span>: <span class="num">9200</span>,
+      <span class="key">"totalPending"</span>: <span class="num">3200</span>,
+      <span class="key">"onlineCollected"</span>: <span class="num">6800</span>,
+      <span class="key">"manualCollected"</span>: <span class="num">2400</span>,
+      <span class="key">"depositsPaid"</span>: <span class="num">5600</span>,
+      <span class="key">"balancesPaid"</span>: <span class="num">3600</span>,
+      <span class="key">"totalReservations"</span>: <span class="num">18</span>,
+      <span class="key">"uniqueStagiaires"</span>: <span class="num">16</span>
+    }
+  }
+}</pre>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ MODELS ═══════════════════════════════════ -->
+<section id="models">
+  <h2><span class="section-icon">🗄</span> Modèles Prisma</h2>
+  <p class="section-desc">Structures de données retournées par l'API.</p>
+
+  <div class="intro-grid">
+    <div class="info-card">
+      <h3>User</h3>
+      <pre style="font-size:11px;">id          String
+email       String   (unique)
+name        String
+emailVerified Boolean
+image       String?
+avatarUrl   String?
+role        Role
+createdAt   DateTime
+updatedAt   DateTime</pre>
+    </div>
+    <div class="info-card">
+      <h3>Client</h3>
+      <pre style="font-size:11px;">id          String
+firstName   String
+lastName    String
+email       String?
+phone       String
+address     String
+postalCode  String
+city        String
+country     String
+createdAt   DateTime</pre>
+    </div>
+    <div class="info-card">
+      <h3>Stagiaire</h3>
+      <pre style="font-size:11px;">id          String
+firstName   String
+lastName    String
+email       String
+phone       String
+birthDate   DateTime
+height      Float    (cm)
+weight      Float    (kg)
+createdAt   DateTime</pre>
+    </div>
+    <div class="info-card">
+      <h3>Stage</h3>
+      <pre style="font-size:11px;">id                    String
+startDate             DateTime
+duration              Int      (jours)
+places                Int
+price                 Float
+acomptePrice          Float
+type                  StageType
+promotionOriginalPrice Float?
+promotionEndDate      DateTime?
+promotionReason       String?
+moniteurs             User[]
+createdAt             DateTime</pre>
+    </div>
+    <div class="info-card">
+      <h3>Order</h3>
+      <pre style="font-size:11px;">id          String
+orderNumber String   (unique)
+clientId    String
+totalAmount Float
+status      OrderStatus
+promoCodeId String?
+createdAt   DateTime
+updatedAt   DateTime</pre>
+    </div>
+    <div class="info-card">
+      <h3>OrderItem</h3>
+      <pre style="font-size:11px;">id              String
+orderId         String
+type            String
+quantity        Int
+unitPrice       Float
+totalPrice      Float
+participantData Json
+stageId         String?
+stageBookingId  String?</pre>
+    </div>
+    <div class="info-card">
+      <h3>Payment</h3>
+      <pre style="font-size:11px;">id                String
+orderId           String
+amount            Float
+status            PaymentStatus
+type              PaymentType
+paymentMethod     ManualPaymentMethod?
+recordedByUserId  String?
+createdAt         DateTime</pre>
+    </div>
+    <div class="info-card">
+      <h3>PromoCode</h3>
+      <pre style="font-size:11px;">id                    String
+code                  String   (unique)
+label                 String?
+discountType          DiscountType
+discountValue         Float
+maxDiscountAmount     Float?
+minCartAmount         Float?
+maxUses               Int?
+currentUses           Int
+expiryDate            DateTime?
+isActive              Boolean
+applicableProductTypes String[]</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════ ENUMS ═══════════════════════════════════ -->
+<section id="enums">
+  <h2><span class="section-icon">🔢</span> Enums</h2>
+  <p class="section-desc">Toutes les valeurs enum utilisées dans les requêtes et réponses.</p>
+  <div class="intro-grid">
+    <div class="info-card">
+      <h3>Role</h3>
+      <div class="enum-list"><span class="enum-val">ADMIN</span><span class="enum-val">MONITEUR</span><span class="enum-val">CUSTOMER</span></div>
+    </div>
+    <div class="info-card">
+      <h3>StageType</h3>
+      <div class="enum-list"><span class="enum-val">INITIATION</span><span class="enum-val">PROGRESSION</span><span class="enum-val">AUTONOMIE</span><span class="enum-val">DOUBLE</span></div>
+    </div>
+    <div class="info-card">
+      <h3>StageBookingType</h3>
+      <div class="enum-list"><span class="enum-val">INITIATION</span><span class="enum-val">PROGRESSION</span><span class="enum-val">AUTONOMIE</span></div>
+    </div>
+    <div class="info-card">
+      <h3>OrderStatus</h3>
+      <div class="enum-list"><span class="enum-val">PENDING</span><span class="enum-val">PAID</span><span class="enum-val">PARTIALLY_PAID</span><span class="enum-val">FULLY_PAID</span><span class="enum-val">CONFIRMED</span><span class="enum-val">CANCELLED</span><span class="enum-val">REFUNDED</span></div>
+    </div>
+    <div class="info-card">
+      <h3>PaymentStatus</h3>
+      <div class="enum-list"><span class="enum-val">PENDING</span><span class="enum-val">SUCCEEDED</span><span class="enum-val">FAILED</span><span class="enum-val">REFUNDED</span></div>
+    </div>
+    <div class="info-card">
+      <h3>PaymentType</h3>
+      <div class="enum-list"><span class="enum-val">STRIPE</span><span class="enum-val">MANUAL</span></div>
+    </div>
+    <div class="info-card">
+      <h3>ManualPaymentMethod</h3>
+      <div class="enum-list"><span class="enum-val">CARD</span><span class="enum-val">BANK_TRANSFER</span><span class="enum-val">CASH</span><span class="enum-val">CHECK</span></div>
+    </div>
+    <div class="info-card">
+      <h3>DiscountType</h3>
+      <div class="enum-list"><span class="enum-val">FIXED</span><span class="enum-val">PERCENTAGE</span></div>
+    </div>
+  </div>
+</section>
+
+</main>
+
+<script>
+  // Highlight active nav link on scroll
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('nav a[href^="#"]');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(l => l.classList.remove('active'));
+        const active = document.querySelector(`nav a[href="#${entry.target.id}"]`);
+        if (active) active.classList.add('active');
+      }
+    });
+  }, { rootMargin: '-20% 0px -70% 0px' });
+
+  sections.forEach(s => observer.observe(s));
+</script>
+</body>
+</html>

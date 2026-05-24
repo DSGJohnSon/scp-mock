@@ -1,6 +1,6 @@
 import "server-only";
 import { createMiddleware } from "hono/factory";
-import { auth } from "@/lib/auth";
+import { auth } from "@/lib/auth/auth";
 
 /**
  * Requires a valid better-auth session.

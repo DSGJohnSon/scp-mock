@@ -3,18 +3,13 @@ import { client } from "@/lib/rpc";
 import type { ReservationDetail } from "../types";
 
 export const useGetReservationDetails = (id: string) => {
-  const query = useQuery({
+  return useQuery({
     queryKey: ["reservation-details", id],
     queryFn: async () => {
-      const response = await client.api.reservations[":id"].$get({
-        param: { id },
-      });
+      const res = await client.api.reservations[":id"].$get({ param: { id } });
+      if (!res.ok) throw new Error("Échec de la récupération de la réservation");
 
-      if (!response.ok) {
-        throw new Error("Failed to fetch reservation details");
-      }
-
-      const json = await response.json();
+      const json = await res.json();
       if (!json.success) {
         throw new Error((json as { message?: string }).message ?? "Réservation non trouvée");
       }
@@ -23,6 +18,4 @@ export const useGetReservationDetails = (id: string) => {
     },
     enabled: !!id,
   });
-
-  return query;
 };
