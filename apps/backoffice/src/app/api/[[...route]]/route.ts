@@ -23,6 +23,8 @@ const routes = app
         return [
           "http://localhost:3000",
           "http://localhost:3001",
+          "https://scp-mock-front.vercel.app",
+          "https://scp-mock-backoffice.vercel.app"
         ].includes(origin ?? "")
           ? origin
           : "";
