@@ -68,7 +68,7 @@ export function ReservationCancelDialog({
           <DialogDescription asChild>
             <div className="space-y-3 mt-2">
               <p className="text-sm text-muted-foreground">
-                Vous êtes sur le point d'annuler la réservation de{" "}
+                Vous êtes sur le point d&apos;annuler la réservation de{" "}
                 <span className="font-semibold text-foreground">{stagiaireName}</span>.
               </p>
               <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 space-y-1">
@@ -78,7 +78,7 @@ export function ReservationCancelDialog({
                 <ul className="text-sm text-muted-foreground space-y-0.5 list-disc list-inside">
                   <li>La réservation sera marquée comme annulée</li>
                   <li>La place sera libérée sur le stage</li>
-                  <li>Aucun remboursement n'est effectué automatiquement</li>
+                  <li>Aucun remboursement n&apos;est effectué automatiquement</li>
                 </ul>
               </div>
               <div className="space-y-1.5 pt-1">

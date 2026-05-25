@@ -3,7 +3,7 @@
 import * as React from "react";
 import { useTheme } from "next-themes";
 
-import { Switch } from "./ui/switch";
+import { Switch } from "../ui/switch";
 
 import { MoonIcon } from "@/lib/icons"
 

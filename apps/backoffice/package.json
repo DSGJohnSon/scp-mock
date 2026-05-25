@@ -56,6 +56,8 @@
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@typescript-eslint/eslint-plugin": "^8.0.0",
+    "@typescript-eslint/parser": "^8.0.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/google-libphonenumber": "^7.4.30",
     "@types/node": "^20",

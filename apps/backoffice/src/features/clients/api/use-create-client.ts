@@ -5,7 +5,7 @@ import { createClient } from "../actions";
 type RequestType = {
   firstName: string;
   lastName: string;
-  email: string;
+  email?: string;
   phone: string;
   address: string;
   postalCode: string;

@@ -11,7 +11,7 @@ export interface PromoCode {
   currentUses: number;
   expiryDate: Date | null;
   isActive: boolean;
-  applicableProductTypes: string[];
+  applicableProductTypes: "STAGE"[];
   campaignId: string | null;
   createdAt: Date;
   updatedAt: Date;
